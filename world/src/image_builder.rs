@@ -6,13 +6,13 @@ use world::{
     models::{
         color::Color8,
         continent::{Continent, Region},
-        point::PointU16,
+        point::{Point16, Size16},
     },
 };
 
-pub fn build_regions_image(img_size: &PointU16, regions: &Vec<Region>, image_name: &str) {
+pub fn build_regions_image(img_size: &Size16, regions: &Vec<Region>, image_name: &str) {
     let mut imgbuf: image::ImageBuffer<image::Rgb<u8>, Vec<u8>> =
-        image::ImageBuffer::new(img_size.x as u32, img_size.y as u32);
+        image::ImageBuffer::new(img_size.width as u32, img_size.height as u32);
 
     for rg in regions {
         let mut rng = rand::thread_rng();
@@ -32,9 +32,9 @@ pub fn build_regions_image(img_size: &PointU16, regions: &Vec<Region>, image_nam
     imgbuf.save(image_name).unwrap();
 }
 
-pub fn build(img_size: PointU16, continents: &HashMap<(u16, u16), Continent>, image_name: &str) {
+pub fn build(img_size: Size16, continents: &HashMap<(u16, u16), Continent>, image_name: &str) {
     let mut imgbuf: image::ImageBuffer<image::Rgb<u8>, Vec<u8>> =
-        image::ImageBuffer::new(img_size.x as u32, img_size.y as u32);
+        image::ImageBuffer::new(img_size.width as u32, img_size.height as u32);
 
     // load gradient images
     // let mut gradient_images: HashMap<u8, DynamicImage> = HashMap::new();

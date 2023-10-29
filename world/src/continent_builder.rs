@@ -8,7 +8,7 @@ use world::{
     image_gradient,
     models::{
         continent::{Continent, Region},
-        point::PointU16,
+        point::{Point16, Size16},
     },
 };
 
@@ -31,27 +31,23 @@ use world::{
 // }
 
 pub fn build_continents_with_site(
-    cell_size: &PointU16,
-    grid_size: &PointU16,
+    cell_size: &Size16,
+    grid_size: &Size16,
 ) -> HashMap<(u16, u16), Continent> {
     let mut continent_points: HashMap<(u16, u16), Continent> = HashMap::new();
 
-    // TODO: refactor and initialize vectors with size
-    // let size = grid_size.x * grid_size.y;
-    // let mut sites: Vec<Point> = Vec::with_capacity(size as usize);
-
     let mut i: u16 = 0;
-    for x in 0..grid_size.x {
-        for y in 0..grid_size.y {
-            let random_x = rand::thread_rng().gen_range(0..cell_size.x);
-            let random_y = rand::thread_rng().gen_range(0..cell_size.y);
-            let site = PointU16 {
-                x: (x * cell_size.x) + random_x,
-                y: (y * cell_size.y) + random_y,
+    for x in 0..grid_size.width {
+        for y in 0..grid_size.height {
+            let random_x = rand::thread_rng().gen_range(0..cell_size.width);
+            let random_y = rand::thread_rng().gen_range(0..cell_size.height);
+            let site = Point16 {
+                x: (x * cell_size.width) + random_x,
+                y: (y * cell_size.height) + random_y,
             };
 
             let continent_point = Continent {
-                grid_coord: PointU16 { x, y },
+                grid_coord: Point16 { x, y },
                 site_point: site,
                 plate_movement_direction: image_gradient::get_random_degrees_index(),
                 elevation: get_random_tectonic_elevation(),
@@ -70,16 +66,16 @@ pub fn build_continents_with_site(
 pub fn assign_regions_to_continents(
     regions: Vec<Region>,
     continents: &mut HashMap<(u16, u16), Continent>,
-    continent_grid_size: PointU16,
-    continent_cell_size: PointU16,
+    continent_grid_size: Size16,
+    continent_cell_size: Size16,
 ) {
     // iterate over regions
     for region in regions {
-        let p_x = (region.site_point.x as f32 / continent_cell_size.x as f32).floor() as u16;
-        let p_y = (region.site_point.y as f32 / continent_cell_size.y as f32).floor() as u16;
+        let p_x = (region.site_point.x as f32 / continent_cell_size.width as f32).floor() as u16;
+        let p_y = (region.site_point.y as f32 / continent_cell_size.height as f32).floor() as u16;
 
         let mut nearest_distance = f32::INFINITY;
-        let mut nearest_point = PointU16::new(0, 0);
+        let mut nearest_point = Point16::new(0, 0);
 
         let fromx: i32 = p_x as i32 - 1;
         let tox: i32 = p_x as i32 + 1;
@@ -90,8 +86,8 @@ pub fn assign_regions_to_continents(
                 // Skip if the neighbor cell is out of the grid bounds.
                 if bx < 0
                     || by < 0
-                    || bx >= continent_grid_size.x as i32
-                    || by >= continent_grid_size.y as i32
+                    || bx >= continent_grid_size.width as i32
+                    || by >= continent_grid_size.height as i32
                 {
                     continue;
                 }
@@ -106,7 +102,7 @@ pub fn assign_regions_to_continents(
                     // Update the minimum distance.
                     nearest_distance = distance;
                     // Update the nearest point.
-                    nearest_point = PointU16 {
+                    nearest_point = Point16 {
                         x: continents[&(bx as u16, by as u16)].grid_coord.x,
                         y: continents[&(bx as u16, by as u16)].grid_coord.y,
                     }
@@ -130,7 +126,7 @@ pub fn assign_regions_to_continents(
 
 pub fn get_sites_from_continents(
     continent_points: &HashMap<(u16, u16), Continent>,
-    continent_grid_size: PointU16,
+    continent_grid_size: Point16,
 ) -> Vec<Point> {
     let mut sites: Vec<Point> = Vec::new();
 
@@ -158,7 +154,7 @@ fn get_random_tectonic_elevation() -> f32 {
     rng.gen_range(0.2..0.7)
 }
 
-fn calculate_distance(a: &PointU16, b: &PointU16) -> f32 {
+fn calculate_distance(a: &Point16, b: &Point16) -> f32 {
     let x_diff = b.x as f32 - a.x as f32;
     let y_diff = b.y as f32 - a.y as f32;
     let distance = (x_diff.powi(2) + y_diff.powi(2)).sqrt();
