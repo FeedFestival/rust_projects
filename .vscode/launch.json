@@ -8,7 +8,7 @@
             "type": "lldb",
             "request": "launch",
             "name": "Debug",
-            "program": "tutorial1/target/debug/tutorial1",
+            "program": "world/target/debug/world",
             "args": [],
             "cwd": "${workspaceFolder}"
         }
