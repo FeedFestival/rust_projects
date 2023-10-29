@@ -3,11 +3,10 @@ use rand::Rng;
 use voronoice::{BoundingBox, Point, Voronoi, VoronoiBuilder};
 use world::models::point::PointU16;
 
-// TODO: use this for regions
-pub fn generate_sites(width: usize, height: usize, size: usize) -> Vec<Point> {
+pub fn generate_sites(img_size: &PointU16, size: usize) -> Vec<Point> {
     let mut rng = rand::thread_rng();
-    let x_range = rand::distributions::Uniform::new(0, width);
-    let y_range = rand::distributions::Uniform::new(0, height);
+    let x_range = rand::distributions::Uniform::new(0, img_size.x);
+    let y_range = rand::distributions::Uniform::new(0, img_size.y);
 
     let mut sites: Vec<Point> = Vec::with_capacity(size); // Use a Vec to store the sites
 

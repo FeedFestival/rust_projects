@@ -3,14 +3,24 @@ use std::collections::HashMap;
 use voronoice::Point;
 use world::{
     image_gradient,
-    models::{continent::Continent, point::PointU16},
+    models::{
+        continent::{Continent, Region},
+        point::PointU16,
+    },
 };
 
-pub fn build(img_size: &PointU16, grid_size: &PointU16) -> HashMap<(u16, u16), Continent> {
-    let cell_size = PointU16 {
-        x: img_size.x / grid_size.x,
-        y: img_size.y / grid_size.y,
-    };
+pub fn build_regions(pixels_vec: &mut Vec<Vec<(u16, u16)>>) -> Vec<Region> {
+    let mut regions = Vec::with_capacity(pixels_vec.len());
+
+    for i in 0..pixels_vec.len() {
+        let pixels = std::mem::take(&mut pixels_vec[i]);
+        regions.push(Region { pixels });
+    }
+
+    regions
+}
+
+pub fn build(cell_size: PointU16, grid_size: &PointU16) -> HashMap<(u16, u16), Continent> {
     let mut continent_points: HashMap<(u16, u16), Continent> = HashMap::new();
 
     // TODO: refactor and initialize vectors with size

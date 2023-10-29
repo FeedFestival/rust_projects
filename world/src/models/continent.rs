@@ -27,3 +27,8 @@ impl Continent {
         }
     }
 }
+
+pub struct Region {
+    // pub site: PointU16,
+    pub pixels: Vec<(u16, u16)>,
+}
