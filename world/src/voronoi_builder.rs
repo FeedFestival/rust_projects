@@ -31,7 +31,6 @@ pub fn generate_scattered_sites(img_size: &PointU16, size: usize) -> Vec<Point> 
 pub fn generate_sites_by_cell_size(grid_size: &PointU16, cell_size: &PointU16) -> Vec<RegionSite> {
     let mut sites: Vec<RegionSite> = Vec::with_capacity((grid_size.x * grid_size.y) as usize);
 
-    let mut i = 0;
     for x in 0..grid_size.x {
         for y in 0..grid_size.y {
             let random_x = rand::thread_rng().gen_range(0..cell_size.x);
@@ -41,8 +40,7 @@ pub fn generate_sites_by_cell_size(grid_size: &PointU16, cell_size: &PointU16) -
                 y: ((y * cell_size.y) + random_y) as f64,
             };
 
-            sites.push(RegionSite::new(i, x, y, PointU16::new((x * cell_size.x), (y * cell_size.y)), point));
-            i += 1;
+            sites.push(RegionSite::new(x, y, point));
         }
     }
 
@@ -51,7 +49,7 @@ pub fn generate_sites_by_cell_size(grid_size: &PointU16, cell_size: &PointU16) -
 
 pub fn build_voronoi_and_apply_site_pixels(img_size: &PointU16, region_sites: &mut Vec<RegionSite>) {
     
-    let sites: Vec<Point> = region_sites.iter().map(|r| r.point.clone()).collect();
+    let sites: Vec<Point> = region_sites.iter().map(|r| r.site_point.clone()).collect();
     let voronoi = build(img_size, sites);
 
     let mut last_site_index = 0;

@@ -19,8 +19,7 @@ pub fn build_regions(region_sites: &mut Vec<RegionSite>) -> Vec<Region> {
         regions.push(Region {
             x: std::mem::take(&mut region_sites[i].x),
             y: std::mem::take(&mut region_sites[i].y),
-            grid_position: PointU16 { x: region_sites[i].grid_position.x as u16, y: region_sites[i].grid_position.y as u16 },
-            site_point: PointU16 { x: region_sites[i].point.x as u16, y: region_sites[i].point.y as u16 },
+            site_point: PointU16 { x: region_sites[i].site_point.x as u16, y: region_sites[i].site_point.y as u16 },
             pixels: std::mem::take(&mut region_sites[i].pixels),
         });
     }
@@ -49,16 +48,11 @@ pub fn build_continents_with_site(
             };
 
             let continent_point = Continent {
-                index: i,
                 grid_coord: PointU16 { x, y },
-                grid_position: PointU16 { x: x * cell_size.x, y: y * cell_size.y },
                 site_point: site,
                 plate_movement_direction: image_gradient::get_random_degrees_index(),
                 elevation: get_random_tectonic_elevation(),
-                regions: Vec::new(),
-                //
-                pixels_size: None,
-                pixels: None,
+                regions: Vec::new()
             };
 
             continent_points.insert((x, y), continent_point);
@@ -117,7 +111,6 @@ pub fn assign_regions_to_continents(
                 let region = Region {
                     x: region.x,
                     y: region.y,
-                    grid_position: region.grid_position,
                     site_point: region.site_point,
                     pixels: region.pixels
                 };
@@ -161,14 +154,4 @@ fn calculate_distance(a: &PointU16, b: &PointU16) -> f32 {
     let y_diff = b.y as f32 - a.y as f32;
     let distance = (x_diff.powi(2) + y_diff.powi(2)).sqrt();
     distance
-}
-
-pub fn add_pixels_to_continents(
-    continent_points: &mut HashMap<(u16, u16), Continent>,
-    site_pixels: Vec<Vec<(u16, u16)>>,
-) {
-    for cp in continent_points {
-        let pixels = site_pixels[cp.1.index as usize].clone();
-        cp.1.pixels = Some(pixels);
-    }
 }
