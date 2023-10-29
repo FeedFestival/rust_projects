@@ -24,4 +24,22 @@ impl Point16 {
     pub fn new(x: u16, y: u16) -> Point16 {
         Point16 { x, y }
     }
+    pub fn substract(this: &Point16, other: &Point16) -> Point16 {
+        Point16 {
+            x: this.x - other.x,
+            y: this.y - other.y
+        }
+    }
+    pub fn multiply(this: &Point16, other: &Point16) -> Point16 {
+        Point16 {
+            x: this.x * other.x,
+            y: this.y * other.y
+        }
+    }
+    pub fn multiply_by_size(this: &Point16, other: &Size16) -> Point16 {
+        Point16 {
+            x: this.x * other.width,
+            y: this.y * other.height
+        }
+    }
 }

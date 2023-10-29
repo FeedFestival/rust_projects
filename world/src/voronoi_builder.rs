@@ -1,7 +1,7 @@
 extern crate image;
 use rand::Rng;
 use voronoice::{BoundingBox, Point, Voronoi, VoronoiBuilder};
-use world::models::{point::{Point16, Size16}, continent::{Region, Province}};
+use world::models::{continent::Region, point::Size16};
 
 pub fn generate_scattered_sites(img_size: &Size16, len: usize) -> Vec<Point> {
     let mut rng = rand::thread_rng();
@@ -28,9 +28,14 @@ pub fn generate_scattered_sites(img_size: &Size16, len: usize) -> Vec<Point> {
     sites
 }
 
-pub fn build_voronoi_and_apply_site_pixels(img_size: &Size16, provinces: &mut Vec<Province>) {
-    
-    let sites: Vec<Point> = provinces.iter().map(|r| Point { x: r.site_point.x as f64, y: r.site_point.y as f64 }).collect();
+pub fn build_voronoi_and_apply_site_pixels(img_size: &Size16, regions: &mut Vec<Region>) {
+    let sites: Vec<Point> = regions
+        .iter()
+        .map(|r| Point {
+            x: r.site_point.x as f64,
+            y: r.site_point.y as f64,
+        })
+        .collect();
     let voronoi = build(img_size, sites);
 
     let mut last_site_index = 0;
@@ -39,7 +44,7 @@ pub fn build_voronoi_and_apply_site_pixels(img_size: &Size16, provinces: &mut Ve
         for y in 0..img_size.height - 1 {
             let site_index = get_cell_index(&voronoi, last_site_index, x, y);
             last_site_index = site_index;
-            provinces[site_index as usize].pixels.push((x, y));
+            regions[site_index as usize].pixels.push((x, y));
         }
     }
 }

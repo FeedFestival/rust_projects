@@ -20,6 +20,8 @@ pub fn get_degrees_by_index(index: u8) -> u16 {
         12 => return 270,
         13 => return 292,
         14 => return 315,
+        15 => return 337,
+        16 => return 337,
         _ => return 337,
     }
 }
@@ -33,7 +35,7 @@ pub fn load_gradient(nr: u16) -> DynamicImage {
     // let image_path = "C:/__WORK__/Projects/rust-projects/world/src/image_gradient/0.jpg";
     let image_path = format!("src/image_gradient/{}.jpg", nr);
     let path = Path::new(&image_path);
-    println!("{}", &path.display());
+    // println!("{}", &path.display());
     let img: DynamicImage = image::open(&path).unwrap();
 
     // let (width, height) = img.dimensions();

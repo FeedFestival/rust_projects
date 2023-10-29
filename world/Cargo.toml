@@ -10,3 +10,4 @@ image = "0.24.7" # https://crates.io/crates/image
 num-complex = "0.4.4" # https://crates.io/crates/num-complex
 rand = "0.8.5" # https://docs.rs/crate/rand/latest
 voronoice = "0.2.0" # https://crates.io/crates/voronoice
+prisma = "0.1.1" # https://docs.rs/prisma/latest/prisma/

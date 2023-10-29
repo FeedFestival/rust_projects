@@ -4,20 +4,18 @@ use voronoice::Point;
 use world::{
     image_gradient,
     models::{
-        continent::{Continent, Province, Region},
+        continent::{Continent, Province, Realm, Region},
         point::{Point16, Size16},
     },
 };
 
-pub fn build_provinces_and_assign_sites(
-    // grid_size: Size16,
-    // cell_size: Size16,
+pub fn build_regions_and_assign_sites(
     sites: Vec<Point>,
-) -> Vec<Province> {
-    let mut provinces = Vec::with_capacity(sites.len());
+) -> Vec<Region> {
+    let mut regions = Vec::with_capacity(sites.len());
 
     for i in 0..sites.len() {
-        provinces.push(Province {
+        regions.push(Region {
             site_point: Point16 {
                 x: sites[i].x as u16,
                 y: sites[i].y as u16,
@@ -26,11 +24,11 @@ pub fn build_provinces_and_assign_sites(
         });
     }
 
-    provinces
+    regions
 }
 
-pub fn build_regions_and_generate_sites(grid_size: &Size16, cell_size: &Size16) -> Vec<Region> {
-    let mut sites: Vec<Region> = Vec::with_capacity((grid_size.width * grid_size.height) as usize);
+pub fn build_provinces_and_generate_sites(grid_size: &Size16, cell_size: &Size16) -> Vec<Province> {
+    let mut provinces: Vec<Province> = Vec::with_capacity((grid_size.width * grid_size.height) as usize);
 
     for x in 0..grid_size.width {
         for y in 0..grid_size.height {
@@ -41,11 +39,30 @@ pub fn build_regions_and_generate_sites(grid_size: &Size16, cell_size: &Size16) 
                 y: ((y * cell_size.height) + random_y),
             };
 
-            sites.push(Region::new(Point16 { x, y }, site_point));
+            provinces.push(Province::new(Point16 { x, y }, site_point));
         }
     }
 
-    sites
+    provinces
+}
+
+pub fn build_realms_and_generate_sites(grid_size: &Size16, cell_size: &Size16) -> Vec<Realm> {
+    let mut realms: Vec<Realm> = Vec::with_capacity((grid_size.width * grid_size.height) as usize);
+
+    for x in 0..grid_size.width {
+        for y in 0..grid_size.height {
+            let random_x = rand::thread_rng().gen_range(0..cell_size.width);
+            let random_y = rand::thread_rng().gen_range(0..cell_size.height);
+            let site_point = Point16 {
+                x: ((x * cell_size.width) + random_x),
+                y: ((y * cell_size.height) + random_y),
+            };
+
+            realms.push(Realm::new(Point16 { x, y }, site_point));
+        }
+    }
+
+    realms
 }
 
 pub fn build_continents_with_site(
@@ -68,7 +85,7 @@ pub fn build_continents_with_site(
                 site_point: site,
                 plate_movement_direction: image_gradient::get_random_degrees_index(),
                 elevation: get_random_tectonic_elevation(),
-                regions: Vec::new(),
+                realms: Vec::new(),
             };
 
             continents.insert((x, y), continent_point);
@@ -79,32 +96,32 @@ pub fn build_continents_with_site(
     continents
 }
 
-pub fn assign_provinces_to_regions(
-    provinces: Vec<Province>,
-    regions: &mut Vec<Region>,
-    region_grid_size: &Size16,
-    region_cell_size: &Size16,
+pub fn assign_regions_to_provinces(
+    regions: Vec<Region>,
+    provinces: &mut Vec<Province>,
+    province_grid_size: &Size16,
+    province_cell_size: &Size16,
 ) {
-    // create regions hashmap
-    let mut regions_hmap: HashMap<(u16, u16), (u16, u16, u16, u16, usize)> = HashMap::new();
+    // create realms hashmap
+    let mut provinces_hmap: HashMap<(u16, u16), (u16, u16, u16, u16, usize)> = HashMap::new();
     let mut i: usize = 0;
-    for region in &mut *regions {
-        let region_tuple = (
-            region.grid_coord.x,
-            region.grid_coord.y,
-            region.site_point.x,
-            region.site_point.y,
+    for province in &mut *provinces {
+        let realm_tuple = (
+            province.grid_coord.x,
+            province.grid_coord.y,
+            province.site_point.x,
+            province.site_point.y,
             i,
         );
 
-        regions_hmap.insert((region.grid_coord.x, region.grid_coord.y), region_tuple);
+        provinces_hmap.insert((province.grid_coord.x, province.grid_coord.y), realm_tuple);
         i += 1;
     }
 
-    // iterate over regions and assing provinces to regions hashmap
-    for province in provinces {
-        let p_x = (province.site_point.x as f32 / region_cell_size.width as f32).floor() as u16;
-        let p_y = (province.site_point.y as f32 / region_cell_size.height as f32).floor() as u16;
+    // iterate over realms and assing provinces to realms hashmap
+    for region in regions {
+        let p_x = (region.site_point.x as f32 / province_cell_size.width as f32).floor() as u16;
+        let p_y = (region.site_point.y as f32 / province_cell_size.height as f32).floor() as u16;
 
         let mut nearest_distance = f32::INFINITY;
         let mut nearest_point = Point16::new(0, 0);
@@ -118,51 +135,126 @@ pub fn assign_provinces_to_regions(
                 // Skip if the neighbor cell is out of the grid bounds.
                 if bx < 0
                     || by < 0
-                    || bx >= region_grid_size.width as i32
-                    || by >= region_grid_size.height as i32
+                    || bx >= province_grid_size.width as i32
+                    || by >= province_grid_size.height as i32
                 {
                     continue;
                 }
 
                 // Calculate the distance between the current pixel and the point in the neighboring cell.
-                let spx = regions_hmap[&(bx as u16, by as u16)].2;
-                let spy = regions_hmap[&(bx as u16, by as u16)].3;
-                let region_site_point = Point16::new(spx, spy);
-                let distance = calculate_distance(&province.site_point, &region_site_point);
+                let spx = provinces_hmap[&(bx as u16, by as u16)].2;
+                let spy = provinces_hmap[&(bx as u16, by as u16)].3;
+                let realm_site_point = Point16::new(spx, spy);
+                let distance = calculate_distance(&region.site_point, &realm_site_point);
                 // If the calculated distance is less than the current minimum distance.
                 if distance < nearest_distance {
                     // Update the minimum distance.
                     nearest_distance = distance;
                     // Update the nearest point.
                     nearest_point = Point16 {
-                        x: regions_hmap[&(bx as u16, by as u16)].0,
-                        y: regions_hmap[&(bx as u16, by as u16)].1,
+                        x: provinces_hmap[&(bx as u16, by as u16)].0,
+                        y: provinces_hmap[&(bx as u16, by as u16)].1,
                     }
                 }
             }
         }
 
-        let region_index: usize = regions_hmap[&(nearest_point.x, nearest_point.y)].4 as usize;
-        if let Some(region) = regions.get_mut(region_index) {
-            let pv = Province {
-                site_point: province.site_point,
-                pixels: province.pixels,
+        let province_index: usize = provinces_hmap[&(nearest_point.x, nearest_point.y)].4 as usize;
+        if let Some(province) = provinces.get_mut(province_index) {
+            let rg = Region {
+                site_point: region.site_point,
+                pixels: region.pixels,
             };
-            region.provinces.push(pv);
+            province.regions.push(rg);
         }
     }
 }
 
-pub fn assign_regions_to_continents(
-    regions: Vec<Region>,
+pub fn assign_provinces_to_realms(
+    provinces: Vec<Province>,
+    realms: &mut Vec<Realm>,
+    realm_grid_size: &Size16,
+    realm_cell_size: &Size16,
+) {
+    // create realms hashmap
+    let mut realms_hmap: HashMap<(u16, u16), (u16, u16, u16, u16, usize)> = HashMap::new();
+    let mut i: usize = 0;
+    for realm in &mut *realms {
+        let realm_tuple = (
+            realm.grid_coord.x,
+            realm.grid_coord.y,
+            realm.site_point.x,
+            realm.site_point.y,
+            i,
+        );
+
+        realms_hmap.insert((realm.grid_coord.x, realm.grid_coord.y), realm_tuple);
+        i += 1;
+    }
+
+    // iterate over realms and assing provinces to realms hashmap
+    for province in provinces {
+        let p_x = (province.site_point.x as f32 / realm_cell_size.width as f32).floor() as u16;
+        let p_y = (province.site_point.y as f32 / realm_cell_size.height as f32).floor() as u16;
+
+        let mut nearest_distance = f32::INFINITY;
+        let mut nearest_point = Point16::new(0, 0);
+
+        let fromx: i32 = p_x as i32 - 1;
+        let tox: i32 = p_x as i32 + 1;
+        for bx in fromx..tox {
+            let fromy = p_y as i32 - 1;
+            let toy = p_y as i32 + 1;
+            for by in fromy..toy {
+                // Skip if the neighbor cell is out of the grid bounds.
+                if bx < 0
+                    || by < 0
+                    || bx >= realm_grid_size.width as i32
+                    || by >= realm_grid_size.height as i32
+                {
+                    continue;
+                }
+
+                // Calculate the distance between the current pixel and the point in the neighboring cell.
+                let spx = realms_hmap[&(bx as u16, by as u16)].2;
+                let spy = realms_hmap[&(bx as u16, by as u16)].3;
+                let realm_site_point = Point16::new(spx, spy);
+                let distance = calculate_distance(&province.site_point, &realm_site_point);
+                // If the calculated distance is less than the current minimum distance.
+                if distance < nearest_distance {
+                    // Update the minimum distance.
+                    nearest_distance = distance;
+                    // Update the nearest point.
+                    nearest_point = Point16 {
+                        x: realms_hmap[&(bx as u16, by as u16)].0,
+                        y: realms_hmap[&(bx as u16, by as u16)].1,
+                    }
+                }
+            }
+        }
+
+        let realm_index: usize = realms_hmap[&(nearest_point.x, nearest_point.y)].4 as usize;
+        if let Some(realm) = realms.get_mut(realm_index) {
+            let pv = Province {
+                grid_coord: province.grid_coord,
+                site_point: province.site_point,
+                regions: province.regions,
+            };
+            realm.provinces.push(pv);
+        }
+    }
+}
+
+pub fn assign_realms_to_continents(
+    realms: Vec<Realm>,
     continents: &mut HashMap<(u16, u16), Continent>,
     continent_grid_size: Size16,
     continent_cell_size: Size16,
 ) {
-    // iterate over regions
-    for region in regions {
-        let p_x = (region.site_point.x as f32 / continent_cell_size.width as f32).floor() as u16;
-        let p_y = (region.site_point.y as f32 / continent_cell_size.height as f32).floor() as u16;
+    // iterate over realms
+    for realm in realms {
+        let p_x = (realm.site_point.x as f32 / continent_cell_size.width as f32).floor() as u16;
+        let p_y = (realm.site_point.y as f32 / continent_cell_size.height as f32).floor() as u16;
 
         let mut nearest_distance = f32::INFINITY;
         let mut nearest_point = Point16::new(0, 0);
@@ -184,7 +276,7 @@ pub fn assign_regions_to_continents(
 
                 // Calculate the distance between the current pixel and the point in the neighboring cell.
                 let distance = calculate_distance(
-                    &region.site_point,
+                    &realm.site_point,
                     &continents[&(bx as u16, by as u16)].site_point,
                 );
                 // If the calculated distance is less than the current minimum distance.
@@ -203,12 +295,12 @@ pub fn assign_regions_to_continents(
         continents
             .get_mut(&(nearest_point.x, nearest_point.y))
             .map(|continent| {
-                let rg = Region {
-                    grid_coord: region.grid_coord,
-                    site_point: region.site_point,
-                    provinces: region.provinces,
+                let rg = Realm {
+                    grid_coord: realm.grid_coord,
+                    site_point: realm.site_point,
+                    provinces: realm.provinces,
                 };
-                continent.regions.push(rg);
+                continent.realms.push(rg);
             });
     }
 }
