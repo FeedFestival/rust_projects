@@ -1,7 +1,7 @@
 extern crate image;
 use rand::Rng;
 use voronoice::{BoundingBox, Point, Voronoi, VoronoiBuilder};
-use world::models::{point::PointU16, continent::RegionSite};
+use world::models::{point::PointU16, continent::Region};
 
 pub fn generate_scattered_sites(img_size: &PointU16, size: usize) -> Vec<Point> {
     let mut rng = rand::thread_rng();
@@ -28,28 +28,28 @@ pub fn generate_scattered_sites(img_size: &PointU16, size: usize) -> Vec<Point> 
     sites
 }
 
-pub fn generate_sites_by_cell_size(grid_size: &PointU16, cell_size: &PointU16) -> Vec<RegionSite> {
-    let mut sites: Vec<RegionSite> = Vec::with_capacity((grid_size.x * grid_size.y) as usize);
+pub fn build_regions_and_generate_sites(grid_size: &PointU16, cell_size: &PointU16) -> Vec<Region> {
+    let mut sites: Vec<Region> = Vec::with_capacity((grid_size.x * grid_size.y) as usize);
 
     for x in 0..grid_size.x {
         for y in 0..grid_size.y {
             let random_x = rand::thread_rng().gen_range(0..cell_size.x);
             let random_y = rand::thread_rng().gen_range(0..cell_size.y);
-            let point = Point {
-                x: ((x * cell_size.x) + random_x) as f64,
-                y: ((y * cell_size.y) + random_y) as f64,
+            let site_point = PointU16 {
+                x: ((x * cell_size.x) + random_x),
+                y: ((y * cell_size.y) + random_y)
             };
 
-            sites.push(RegionSite::new(x, y, point));
+            sites.push(Region::new(x, y, site_point));
         }
     }
 
     sites
 }
 
-pub fn build_voronoi_and_apply_site_pixels(img_size: &PointU16, region_sites: &mut Vec<RegionSite>) {
+pub fn build_voronoi_and_apply_site_pixels(img_size: &PointU16, region_sites: &mut Vec<Region>) {
     
-    let sites: Vec<Point> = region_sites.iter().map(|r| r.site_point.clone()).collect();
+    let sites: Vec<Point> = region_sites.iter().map(|r| Point { x: r.site_point.x as f64, y: r.site_point.y as f64 }).collect();
     let voronoi = build(img_size, sites);
 
     let mut last_site_index = 0;

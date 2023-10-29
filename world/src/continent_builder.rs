@@ -7,25 +7,28 @@ use voronoice::Point;
 use world::{
     image_gradient,
     models::{
-        continent::{Continent, Region, RegionSite},
+        continent::{Continent, Region},
         point::PointU16,
     },
 };
 
-pub fn build_regions(region_sites: &mut Vec<RegionSite>) -> Vec<Region> {
-    let mut regions = Vec::with_capacity(region_sites.len());
+// pub fn build_regions(region_sites: &mut Vec<Region>) -> Vec<Region> {
+//     let mut regions = Vec::with_capacity(region_sites.len());
 
-    for i in 0..region_sites.len() {
-        regions.push(Region {
-            x: std::mem::take(&mut region_sites[i].x),
-            y: std::mem::take(&mut region_sites[i].y),
-            site_point: PointU16 { x: region_sites[i].site_point.x as u16, y: region_sites[i].site_point.y as u16 },
-            pixels: std::mem::take(&mut region_sites[i].pixels),
-        });
-    }
+//     for i in 0..region_sites.len() {
+//         regions.push(Region {
+//             x: std::mem::take(&mut region_sites[i].x),
+//             y: std::mem::take(&mut region_sites[i].y),
+//             site_point: PointU16 {
+//                 x: region_sites[i].site_point.x as u16,
+//                 y: region_sites[i].site_point.y as u16,
+//             },
+//             pixels: std::mem::take(&mut region_sites[i].pixels),
+//         });
+//     }
 
-    regions
-}
+//     regions
+// }
 
 pub fn build_continents_with_site(
     cell_size: &PointU16,
@@ -52,7 +55,7 @@ pub fn build_continents_with_site(
                 site_point: site,
                 plate_movement_direction: image_gradient::get_random_degrees_index(),
                 elevation: get_random_tectonic_elevation(),
-                regions: Vec::new()
+                regions: Vec::new(),
             };
 
             continent_points.insert((x, y), continent_point);
@@ -69,7 +72,6 @@ pub fn assign_regions_to_continents(
     continents: &mut HashMap<(u16, u16), Continent>,
     continent_grid_size: PointU16,
     continent_cell_size: PointU16,
-
 ) {
     // iterate over regions
     for region in regions {
@@ -86,12 +88,19 @@ pub fn assign_regions_to_continents(
             let toy = p_y as i32 + 1;
             for by in fromy..toy {
                 // Skip if the neighbor cell is out of the grid bounds.
-                if bx < 0 || by < 0 || bx >= continent_grid_size.x as i32 || by >= continent_grid_size.y as i32 {
+                if bx < 0
+                    || by < 0
+                    || bx >= continent_grid_size.x as i32
+                    || by >= continent_grid_size.y as i32
+                {
                     continue;
                 }
 
                 // Calculate the distance between the current pixel and the point in the neighboring cell.
-                let distance = calculate_distance(&region.site_point, &continents[&(bx as u16, by as u16)].site_point);
+                let distance = calculate_distance(
+                    &region.site_point,
+                    &continents[&(bx as u16, by as u16)].site_point,
+                );
                 // If the calculated distance is less than the current minimum distance.
                 if distance < nearest_distance {
                     // Update the minimum distance.
@@ -112,7 +121,7 @@ pub fn assign_regions_to_continents(
                     x: region.x,
                     y: region.y,
                     site_point: region.site_point,
-                    pixels: region.pixels
+                    pixels: region.pixels,
                 };
                 continent.regions.push(region);
             });

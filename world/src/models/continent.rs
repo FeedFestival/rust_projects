@@ -32,20 +32,12 @@ pub struct Region {
     pub pixels: Vec<(u16, u16)>,
 }
 
-// TODO: I think we can just do Region... 
-pub struct RegionSite {
-    pub x: u16,
-    pub y: u16,
-    pub site_point: Point,
-    pub pixels: Vec<(u16, u16)>
-}
-
-impl RegionSite {
-    pub fn new(x: u16, y: u16, point: Point) -> RegionSite {
-        RegionSite {
+impl Region {
+    pub fn new(x: u16, y: u16, site_point: PointU16) -> Region {
+        Region {
             x,
             y,
-            site_point: point,
+            site_point,
             pixels: Vec::new()
         }
     }

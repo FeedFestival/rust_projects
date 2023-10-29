@@ -16,9 +16,8 @@ fn main() {
         x: img_size.x / region_grid_size.x,
         y: img_size.y / region_grid_size.y,
     };
-    let mut region_sites = voronoi_builder::generate_sites_by_cell_size(&region_grid_size, &region_cell_size);
-    voronoi_builder::build_voronoi_and_apply_site_pixels(&img_size, &mut region_sites);
-    let regions = continent_builder::build_regions(&mut region_sites);
+    let mut regions = voronoi_builder::build_regions_and_generate_sites(&region_grid_size, &region_cell_size);
+    voronoi_builder::build_voronoi_and_apply_site_pixels(&img_size, &mut regions);
     image_builder::build_regions_image(&img_size, &regions, "regions.png");
 
     // make continents and apply region to them based off of distance
