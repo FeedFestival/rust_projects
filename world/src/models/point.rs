@@ -4,9 +4,6 @@ pub struct Size16 {
 }
 
 impl Size16 {
-    // pub fn default() -> Size16 {
-    //     PointU16 { x: 0, y: 0 }
-    // }
     pub fn new(width: u16, height: u16) -> Size16 {
         Size16 { width, height }
     }

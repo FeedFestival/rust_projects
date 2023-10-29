@@ -1,5 +1,5 @@
-use image::{DynamicImage, GenericImageView, GrayImage};
-use prisma::{FromColor, FromTuple, Hsv, Rgb};
+use image::{GenericImageView, GrayImage};
+
 use rand::Rng;
 use std::collections::HashMap;
 use world::{
@@ -7,7 +7,7 @@ use world::{
     models::{
         color::Color8,
         continent::{Continent, Province, Realm, Region},
-        point::{try_map_min_max_points, try_map_min_max_points_by_points, Point16, Size16},
+        point::{Point16, Size16},
     },
 };
 
