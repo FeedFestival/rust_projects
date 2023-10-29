@@ -1,9 +1,9 @@
 extern crate image;
 use rand::Rng;
 use voronoice::{BoundingBox, Point, Voronoi, VoronoiBuilder};
-use world::models::point::PointU16;
+use world::models::{point::PointU16, continent::RegionSite};
 
-pub fn generate_sites(img_size: &PointU16, size: usize) -> Vec<Point> {
+pub fn generate_scattered_sites(img_size: &PointU16, size: usize) -> Vec<Point> {
     let mut rng = rand::thread_rng();
     let x_range = rand::distributions::Uniform::new(0, img_size.x);
     let y_range = rand::distributions::Uniform::new(0, img_size.y);
@@ -28,23 +28,47 @@ pub fn generate_sites(img_size: &PointU16, size: usize) -> Vec<Point> {
     sites
 }
 
-pub fn build_and_get_site_pixels(img_size: &PointU16, sites: Vec<Point>) -> Vec<Vec<(u16, u16)>> {
+pub fn generate_sites_by_cell_size(grid_size: &PointU16, cell_size: &PointU16) -> Vec<RegionSite> {
+    let mut sites: Vec<RegionSite> = Vec::with_capacity((grid_size.x * grid_size.y) as usize);
+
+    let mut i = 0;
+    for x in 0..grid_size.x {
+        for y in 0..grid_size.y {
+            let random_x = rand::thread_rng().gen_range(0..cell_size.x);
+            let random_y = rand::thread_rng().gen_range(0..cell_size.y);
+            let point = Point {
+                x: ((x * cell_size.x) + random_x) as f64,
+                y: ((y * cell_size.y) + random_y) as f64,
+            };
+
+            sites.push(RegionSite::new(i, x, y, PointU16::new((x * cell_size.x), (y * cell_size.y)), point));
+            i += 1;
+        }
+    }
+
+    sites
+}
+
+pub fn build_voronoi_and_apply_site_pixels(img_size: &PointU16, region_sites: &mut Vec<RegionSite>) {
+    
+    let sites: Vec<Point> = region_sites.iter().map(|r| r.point.clone()).collect();
     let voronoi = build(img_size, sites);
 
-    println!("voronoi.cells().len(): {}", voronoi.cells().len());
-
     let mut last_site_index = 0;
-    let mut ret_val: Vec<Vec<(u16, u16)>> = vec![vec![]; voronoi.cells().len()];
+    // let mut ret_val: Vec<Vec<(u16, u16)>> = vec![vec![]; voronoi.cells().len()];
 
     for x in 0..img_size.x - 1 {
         for y in 0..img_size.y - 1 {
             let site_index = get_cell_index(&voronoi, last_site_index, x, y);
             last_site_index = site_index;
-            ret_val[site_index as usize].push((x, y));
+
+            // ret_val[site_index as usize].push((x, y));
+
+            region_sites[site_index as usize].pixels.push((x, y));
         }
     }
 
-    ret_val
+    // ret_val
 }
 
 fn build(img_size: &PointU16, sites: Vec<Point>) -> Voronoi {
