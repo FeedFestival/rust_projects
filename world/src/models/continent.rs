@@ -24,35 +24,29 @@ impl Continent {
 }
 
 pub struct Region {
-    pub x: u16,
-    pub y: u16,
+    pub grid_coord: Point16,
     pub site_point: Point16,
-    pub pixels: Vec<(u16, u16)>,
+    pub provinces: Vec<Province>,
 }
 
 impl Region {
-    pub fn new(x: u16, y: u16, site_point: Point16) -> Region {
+    pub fn new(grid_coord: Point16, site_point: Point16) -> Region {
         Region {
-            x,
-            y,
+            grid_coord,
             site_point,
-            pixels: Vec::new()
+            provinces: Vec::new()
         }
     }
 }
 
 pub struct Province {
-    pub x: u16,
-    pub y: u16,
     pub site_point: Point16,
     pub pixels: Vec<(u16, u16)>,
 }
 
 impl Province {
-    pub fn new(x: u16, y: u16, site_point: Point16) -> Province {
+    pub fn new(site_point: Point16) -> Province {
         Province {
-            x,
-            y,
             site_point,
             pixels: Vec::new()
         }
