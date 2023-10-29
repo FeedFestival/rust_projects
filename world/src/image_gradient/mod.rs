@@ -1,5 +1,5 @@
 use rand::Rng;
-use image::{GenericImageView, DynamicImage};
+use image::{DynamicImage};
 extern crate image;
 use std::path::Path;
 

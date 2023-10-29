@@ -1,9 +1,7 @@
 use rand::Rng;
 use std::{
-    cmp::{max, min},
     collections::HashMap,
 };
-use voronoice::Point;
 use world::{
     image_gradient,
     models::{
@@ -36,7 +34,6 @@ pub fn build_continents_with_site(
 ) -> HashMap<(u16, u16), Continent> {
     let mut continent_points: HashMap<(u16, u16), Continent> = HashMap::new();
 
-    let mut i: u16 = 0;
     for x in 0..grid_size.width {
         for y in 0..grid_size.height {
             let random_x = rand::thread_rng().gen_range(0..cell_size.width);
@@ -55,7 +52,6 @@ pub fn build_continents_with_site(
             };
 
             continent_points.insert((x, y), continent_point);
-            i += 1;
         }
     }
 
@@ -122,31 +118,6 @@ pub fn assign_regions_to_continents(
                 continent.regions.push(region);
             });
     }
-}
-
-pub fn get_sites_from_continents(
-    continent_points: &HashMap<(u16, u16), Continent>,
-    continent_grid_size: Point16,
-) -> Vec<Point> {
-    let mut sites: Vec<Point> = Vec::new();
-
-    for x in 0..continent_grid_size.x {
-        for y in 0..continent_grid_size.y {
-            match continent_points.get(&(x, y)) {
-                Some(value) => {
-                    sites.push(Point {
-                        x: value.site_point.x as f64,
-                        y: value.site_point.y as f64,
-                    });
-                }
-                None => {
-                    println!("Key not found");
-                }
-            }
-        }
-    }
-
-    sites
 }
 
 fn get_random_tectonic_elevation() -> f32 {

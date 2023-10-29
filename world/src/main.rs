@@ -2,13 +2,13 @@ mod continent_builder;
 mod image_builder;
 mod voronoi_builder;
 
-use world::models::point::{Point16, Size16};
+use world::models::point::{Size16};
 
 fn main() {
     let img_size: Size16 = Size16::new(768, 384);
 
     // make provinces
-    let province_grid_size: Size16 = Size16::new(192, 96);
+    let _province_grid_size: Size16 = Size16::new(192, 96);
 
     // make regions
     let region_grid_size = Size16::new(48, 24);

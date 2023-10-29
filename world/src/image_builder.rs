@@ -1,12 +1,11 @@
-use image::DynamicImage;
+
 use rand::Rng;
 use std::collections::HashMap;
 use world::{
-    image_gradient,
     models::{
         color::Color8,
         continent::{Continent, Region},
-        point::{Point16, Size16},
+        point::{Size16},
     },
 };
 
