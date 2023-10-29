@@ -5,6 +5,8 @@ mod voronoi_builder;
 use world::models::point::Size16;
 
 fn main() {
+    let time_now = std::time::SystemTime::now();
+
     // (768, 384);
     let img_size: Size16 = Size16::new(1536, 768);
     let region_pref_width = 512;
@@ -54,7 +56,7 @@ fn main() {
     let region_sites_len = ((region_grid_size.width / 2) * (region_grid_size.height / 2)) as usize;
     let sites = voronoi_builder::generate_scattered_sites(&img_size, region_sites_len);
     let mut regions = continent_builder::build_regions_and_assign_sites(sites);
-    voronoi_builder::build_voronoi_and_apply_site_pixels(&img_size, &mut regions);
+    voronoi_builder::build_voronoi_and_apply_site_pixels_and_corners(&img_size, &mut regions);
     image_builder::build_regions_image(&img_size, &regions, "regions.png");
 
 
@@ -107,4 +109,9 @@ fn main() {
         continent_cell_size,
     );
     image_builder::build(img_size, &continents, "continets.png");
+
+    match time_now.elapsed() {
+        Ok(ellapsed) => println!("s: {}, ms: {}, ns: {}", ellapsed.as_secs(), ellapsed.as_millis(), ellapsed.as_nanos()),
+        Err(_) => todo!(),
+    }
 }

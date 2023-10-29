@@ -5,30 +5,26 @@ use world::{
     image_gradient,
     models::{
         continent::{Continent, Province, Realm, Region},
-        point::{Point16, Size16},
+        point::{Point16, Size16, try_map_points_min_max_points_by_points},
     },
 };
 
-pub fn build_regions_and_assign_sites(
-    sites: Vec<Point>,
-) -> Vec<Region> {
+pub fn build_regions_and_assign_sites(sites: Vec<Point>) -> Vec<Region> {
     let mut regions = Vec::with_capacity(sites.len());
 
     for i in 0..sites.len() {
-        regions.push(Region {
-            site_point: Point16 {
-                x: sites[i].x as u16,
-                y: sites[i].y as u16,
-            },
-            pixels: Vec::new(),
-        });
+        regions.push(Region::new(Point16 {
+            x: sites[i].x as u16,
+            y: sites[i].y as u16,
+        }));
     }
 
     regions
 }
 
 pub fn build_provinces_and_generate_sites(grid_size: &Size16, cell_size: &Size16) -> Vec<Province> {
-    let mut provinces: Vec<Province> = Vec::with_capacity((grid_size.width * grid_size.height) as usize);
+    let mut provinces: Vec<Province> =
+        Vec::with_capacity((grid_size.width * grid_size.height) as usize);
 
     for x in 0..grid_size.width {
         for y in 0..grid_size.height {
@@ -80,13 +76,12 @@ pub fn build_continents_with_site(
                 y: (y * cell_size.height) + random_y,
             };
 
-            let continent_point = Continent {
-                grid_coord: Point16 { x, y },
-                site_point: site,
-                plate_movement_direction: image_gradient::get_random_degrees_index(),
-                elevation: get_random_tectonic_elevation(),
-                realms: Vec::new(),
-            };
+            let continent_point = Continent::new(
+                Point16 { x, y },
+                site,
+                image_gradient::get_random_degrees_index(),
+                get_random_tectonic_elevation()
+            );
 
             continents.insert((x, y), continent_point);
         }
@@ -163,10 +158,21 @@ pub fn assign_regions_to_provinces(
         if let Some(province) = provinces.get_mut(province_index) {
             let rg = Region {
                 site_point: region.site_point,
+                bottom_left: region.bottom_left,
+                top_right: region.top_right,
                 pixels: region.pixels,
             };
+
+            // assign new corners if we found new min or max
+            try_map_points_min_max_points_by_points(
+                &mut province.bottom_left, &mut province.top_right,
+                &rg.bottom_left, &rg.top_right
+            );
+
             province.regions.push(rg);
         }
+
+
     }
 }
 
@@ -238,8 +244,17 @@ pub fn assign_provinces_to_realms(
             let pv = Province {
                 grid_coord: province.grid_coord,
                 site_point: province.site_point,
+                top_right: province.top_right,
+                bottom_left: province.bottom_left,
                 regions: province.regions,
             };
+
+            // assign new corners if we found new min or max
+            try_map_points_min_max_points_by_points(
+                &mut realm.bottom_left, &mut realm.top_right,
+                &pv.bottom_left, &pv.top_right
+            );
+
             realm.provinces.push(pv);
         }
     }
@@ -295,12 +310,21 @@ pub fn assign_realms_to_continents(
         continents
             .get_mut(&(nearest_point.x, nearest_point.y))
             .map(|continent| {
-                let rg = Realm {
+                let rlm = Realm {
                     grid_coord: realm.grid_coord,
                     site_point: realm.site_point,
+                    top_right: realm.top_right,
+                    bottom_left: realm.bottom_left,
                     provinces: realm.provinces,
                 };
-                continent.realms.push(rg);
+
+                // assign new corners if we found new min or max
+                try_map_points_min_max_points_by_points(
+                    &mut continent.bottom_left, &mut continent.top_right,
+                    &rlm.bottom_left, &rlm.top_right
+                );
+
+                continent.realms.push(rlm);
             });
     }
 }

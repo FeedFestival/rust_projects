@@ -1,5 +1,5 @@
 use rand::Rng;
-use image::{DynamicImage};
+use image::{GrayImage, DynamicImage};
 extern crate image;
 use std::path::Path;
 
@@ -31,24 +31,12 @@ pub fn get_random_degrees_index() -> u8 {
     rng.gen_range(0..16)
 }
 
-pub fn load_gradient(nr: u16) -> DynamicImage {
+pub fn load_gradient(nr: u16) -> GrayImage {
+
     // let image_path = "C:/__WORK__/Projects/rust-projects/world/src/image_gradient/0.jpg";
     let image_path = format!("src/image_gradient/{}.jpg", nr);
     let path = Path::new(&image_path);
-    // println!("{}", &path.display());
     let img: DynamicImage = image::open(&path).unwrap();
 
-    // let (width, height) = img.dimensions();
-    // for x in 0..width {
-    //     for y in 0..height {
-    //         // Get the color of the pixel at coordinates (x, y)
-    //         let pixel = img.get_pixel(x, y);
-    //         let red = pixel[0];
-    //         let green = pixel[1];
-    //         let blue = pixel[2];
-    //         println!("Pixel at ({}, {}): R={}, G={}, B={}", x, y, red, green, blue);
-    //     }
-    // }
-
-    img
+    img.to_luma8()
 }

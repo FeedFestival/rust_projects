@@ -1,7 +1,7 @@
 extern crate image;
 use rand::Rng;
 use voronoice::{BoundingBox, Point, Voronoi, VoronoiBuilder};
-use world::models::{continent::Region, point::Size16};
+use world::models::{continent::Region, point::{Size16, Point16, try_map_min_max_points}};
 
 pub fn generate_scattered_sites(img_size: &Size16, len: usize) -> Vec<Point> {
     let mut rng = rand::thread_rng();
@@ -28,7 +28,7 @@ pub fn generate_scattered_sites(img_size: &Size16, len: usize) -> Vec<Point> {
     sites
 }
 
-pub fn build_voronoi_and_apply_site_pixels(img_size: &Size16, regions: &mut Vec<Region>) {
+pub fn build_voronoi_and_apply_site_pixels_and_corners(img_size: &Size16, regions: &mut Vec<Region>) {
     let sites: Vec<Point> = regions
         .iter()
         .map(|r| Point {
@@ -47,6 +47,27 @@ pub fn build_voronoi_and_apply_site_pixels(img_size: &Size16, regions: &mut Vec<
             regions[site_index as usize].pixels.push((x, y));
         }
     }
+
+    for i in 0..regions.len() {
+        let mut bottom_left_x: u16 = u16::MAX;
+        let mut bottom_left_y: u16 = u16::MAX;
+        let mut top_right_x: u16 = u16::MIN;
+        let mut top_right_y: u16 = u16::MIN;
+
+        for j in 0..regions[i].pixels.len() {
+            try_map_min_max_points(
+                &mut bottom_left_x, &mut bottom_left_y, &mut top_right_x, &mut top_right_y,
+                regions[i].pixels[j].0, regions[i].pixels[j].1
+            );
+        }
+
+        let top_right = Point16::new(top_right_x, top_right_y);
+        let bottom_left = Point16::new(bottom_left_x, bottom_left_y);
+        
+        regions[i].top_right = top_right;
+        regions[i].bottom_left = bottom_left;
+    }
+
 }
 
 fn build(img_size: &Size16, sites: Vec<Point>) -> Voronoi {
