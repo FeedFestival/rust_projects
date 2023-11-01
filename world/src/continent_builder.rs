@@ -1,13 +1,12 @@
+use gamescript::models::{
+    continent::{Continent, Province, Realm, Region},
+    point::{try_map_points_min_max_points_by_points, calculate_pixel_pos, calculate_distance, normalize_u8, denormalize_u8, Point16, Size16},
+};
+use image::GrayImage;
 use rand::Rng;
 use std::collections::HashMap;
 use voronoice::Point;
-use world::{
-    image_gradient,
-    models::{
-        continent::{Continent, Province, Realm, Region},
-        point::{Point16, Size16, try_map_points_min_max_points_by_points},
-    },
-};
+use world::image_gradient;
 
 pub fn build_regions_and_assign_sites(sites: Vec<Point>) -> Vec<Region> {
     let mut regions = Vec::with_capacity(sites.len());
@@ -80,7 +79,7 @@ pub fn build_continents_with_site(
                 Point16 { x, y },
                 site,
                 image_gradient::get_random_degrees_index(),
-                get_random_tectonic_elevation()
+                get_random_tectonic_elevation(),
             );
 
             continents.insert((x, y), continent_point);
@@ -160,19 +159,20 @@ pub fn assign_regions_to_provinces(
                 site_point: region.site_point,
                 bottom_left: region.bottom_left,
                 top_right: region.top_right,
+                grey_value: region.grey_value,
                 pixels: region.pixels,
             };
 
             // assign new corners if we found new min or max
             try_map_points_min_max_points_by_points(
-                &mut province.bottom_left, &mut province.top_right,
-                &rg.bottom_left, &rg.top_right
+                &mut province.bottom_left,
+                &mut province.top_right,
+                &rg.bottom_left,
+                &rg.top_right,
             );
 
             province.regions.push(rg);
         }
-
-
     }
 }
 
@@ -246,13 +246,16 @@ pub fn assign_provinces_to_realms(
                 site_point: province.site_point,
                 top_right: province.top_right,
                 bottom_left: province.bottom_left,
+                average_grey_value: province.average_grey_value,
                 regions: province.regions,
             };
 
             // assign new corners if we found new min or max
             try_map_points_min_max_points_by_points(
-                &mut realm.bottom_left, &mut realm.top_right,
-                &pv.bottom_left, &pv.top_right
+                &mut realm.bottom_left,
+                &mut realm.top_right,
+                &pv.bottom_left,
+                &pv.top_right,
             );
 
             realm.provinces.push(pv);
@@ -260,10 +263,10 @@ pub fn assign_provinces_to_realms(
     }
 }
 
-pub fn assign_realms_to_continents(
+pub fn assign_realms_to_continents_and_calculate_region_color(
     realms: Vec<Realm>,
     continents: &mut HashMap<(u16, u16), Continent>,
-    continent_grid_size: Size16,
+    continent_grid_size: &Size16,
     continent_cell_size: Size16,
 ) {
     // iterate over realms
@@ -315,28 +318,89 @@ pub fn assign_realms_to_continents(
                     site_point: realm.site_point,
                     top_right: realm.top_right,
                     bottom_left: realm.bottom_left,
+                    average_grey_value: realm.average_grey_value,
                     provinces: realm.provinces,
                 };
 
                 // assign new corners if we found new min or max
                 try_map_points_min_max_points_by_points(
-                    &mut continent.bottom_left, &mut continent.top_right,
-                    &rlm.bottom_left, &rlm.top_right
+                    &mut continent.bottom_left,
+                    &mut continent.top_right,
+                    &rlm.bottom_left,
+                    &rlm.top_right,
                 );
 
                 continent.realms.push(rlm);
             });
+    }
+
+    // load gradient images so we can calculate the pixel value of the region
+    let mut gradient_images: HashMap<u8, GrayImage> = HashMap::new();
+    for continent in continents.values() {
+        let exists = gradient_images.contains_key(&continent.plate_movement_direction);
+        if exists == false {
+            let degrees = image_gradient::get_degrees_by_index(continent.plate_movement_direction);
+            let gradient_image: GrayImage = image_gradient::load_gradient(degrees);
+            gradient_images.insert(continent.plate_movement_direction, gradient_image);
+        }
+    }
+
+    // iterate over regions and assign continent gradient color to pixels
+    for x in 0..continent_grid_size.width {
+        for y in 0..continent_grid_size.height {
+            continents.get_mut(&(x, y)).map(|continent| {
+                let square_size = Size16::new(
+                    continent.top_right.x - continent.bottom_left.x,
+                    continent.top_right.y - continent.bottom_left.y,
+                );
+
+                if let Some(gradient_texture) =
+                    gradient_images.get(&continent.plate_movement_direction)
+                {
+                    let per_pixel_size = (
+                        (gradient_texture.width() as f64 / square_size.width as f64) as f64,
+                        (gradient_texture.height() as f64 / square_size.height as f64) as f64,
+                    );
+
+                    for rlm in &mut continent.realms {
+
+                        let mut realms_agerage: Vec<u8> = Vec::with_capacity(rlm.provinces.len());
+
+                        for pv in &mut rlm.provinces {
+
+                            let mut provinces_agerage: Vec<u8> = Vec::with_capacity(pv.regions.len());
+
+                            for rg in &mut pv.regions {
+                                let gradient_pos =
+                                    Point16::substract(&rg.site_point, &continent.bottom_left);
+                                let pixel_pos = calculate_pixel_pos(&gradient_pos, &per_pixel_size);
+                                let pixel_color = gradient_texture
+                                    .get_pixel(pixel_pos.x as u32, pixel_pos.y as u32);
+
+                                let color_value = pixel_color.0[0];
+                                let new_value = normalize_u8(color_value as f64)
+                                    * continent.elevation as f64;
+                                rg.grey_value = denormalize_u8(new_value);
+
+                                provinces_agerage.push(rg.grey_value);
+                            }
+
+                            let sum: u32 = provinces_agerage.iter().map(|&x| x as u32).sum();
+                            pv.average_grey_value = ((sum as f64) / (provinces_agerage.len() as f64)) as u8;
+
+                            realms_agerage.push(pv.average_grey_value);
+                        }
+
+                        let sum: u32 = realms_agerage.iter().map(|&x| x as u32).sum();
+                        rlm.average_grey_value = ((sum as f64) / (realms_agerage.len() as f64)) as u8;
+                    }
+                }
+            });
+        }
     }
 }
 
 fn get_random_tectonic_elevation() -> f32 {
     let mut rng = rand::thread_rng();
     rng.gen_range(0.2..0.7)
-}
-
-fn calculate_distance(a: &Point16, b: &Point16) -> f32 {
-    let x_diff = b.x as f32 - a.x as f32;
-    let y_diff = b.y as f32 - a.y as f32;
-    let distance = (x_diff.powi(2) + y_diff.powi(2)).sqrt();
-    distance
 }

@@ -1,7 +1,7 @@
 extern crate image;
 use rand::Rng;
 use voronoice::{BoundingBox, Point, Voronoi, VoronoiBuilder};
-use world::models::{continent::Region, point::{Size16, Point16, try_map_min_max_points}};
+use gamescript::models::{continent::Region, point::{Size16, Point16, try_map_min_max_points}};
 
 pub fn generate_scattered_sites(img_size: &Size16, len: usize) -> Vec<Point> {
     let mut rng = rand::thread_rng();
