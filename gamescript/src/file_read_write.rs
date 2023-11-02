@@ -1,7 +1,16 @@
 use std::{
     fs::{File, metadata},
-    io::{Read, Write},
+    io::{Read, Write}, env,
 };
+
+pub fn dir_name(lib_name: &str) -> Option<String> {
+    if let Ok(project_dir) = env::current_dir() {
+        let mut project_dir = project_dir.to_string_lossy().to_string();
+        project_dir = project_dir.replace(lib_name, "");
+        return Some(project_dir);
+    }
+    return None;
+}
 
 pub fn write_text(string: String, path: &str) {
     let mut file = open_or_create(path);

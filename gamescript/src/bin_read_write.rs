@@ -8,6 +8,16 @@ pub fn write<T: serde::Serialize>(target: &T, path: &str) {
 
 pub fn deserialize_bin<T: serde::de::DeserializeOwned>(path: &str) -> T {
     let data = file_read_write::read_bytes(path);
-    let decoded: T = deserialize(&data).unwrap();
-    decoded
+    let deserialized: Result<T, Box<bincode::ErrorKind>> = deserialize(&data);
+    let decoded: Option<T>;
+    match deserialized {
+        Ok(des) => {
+            decoded = Some(des);
+        },
+        Err(_) => {
+            println!("Could not deserialize, is it possible that you changed the Type? Consider deleting the bin file and recreating it.");
+            decoded = None;
+        },
+    }
+    decoded.unwrap()
 }

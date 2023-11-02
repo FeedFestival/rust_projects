@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use gamescript::models::{
-    continent::{Planet, Realm, Region},
+    continent::{Planet, Realm, Region, PlanetSettings},
     point::{calculate_distance, center_of_two_points, denormalize_u8, normalize_u8},
 };
 use image::{ImageBuffer, Rgb};
@@ -17,13 +17,13 @@ const MULTIPLIER_2: f32 = 0.20;
 const REALM_PX_RANGE_3: f32 = 100.0;
 const MULTIPLIER_3: f32 = 0.10;
 
-pub fn equalize_light_realms(planet: &Planet, light_min_value: u8, dark_min_value: u8) -> (HashMap<(u16, u16), u8>, ImageBuffer<Rgb<u8>, Vec<u8>>) {
+pub fn equalize_light_realms(planet: &Planet, planet_settings: &PlanetSettings, light_min_value: u8, dark_min_value: u8) -> (HashMap<(u16, u16), u8>, ImageBuffer<Rgb<u8>, Vec<u8>>) {
 
     let mut light_realms: Vec<&Realm> = Vec::new();
     let mut dark_realms: Vec<&Realm> = Vec::new();
 
-    for x in 0..planet.grid_size.width {
-        for y in 0..planet.grid_size.height {
+    for x in 0..planet_settings.continent_grid_size.width {
+        for y in 0..planet_settings.continent_grid_size.height {
             let continent = planet.continents.get(&(x, y)).unwrap();
 
             for rlm in &continent.realms {

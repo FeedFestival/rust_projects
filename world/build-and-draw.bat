@@ -1,1 +1,1 @@
-cargo run build-and-draw pause
+cargo run build-and-draw

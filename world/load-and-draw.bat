@@ -1,1 +1,1 @@
-cargo run load-and-draw pause
+cargo run load-and-draw

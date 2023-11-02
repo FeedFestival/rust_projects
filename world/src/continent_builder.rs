@@ -1,5 +1,5 @@
 use gamescript::models::{
-    continent::{Continent, Province, Realm, Region},
+    continent::{Continent, Province, Realm, Region, PlanetSettings},
     point::{try_map_points_min_max_points_by_points, calculate_pixel_pos, calculate_distance, normalize_u8, denormalize_u8, Point16, Size16},
 };
 use image::GrayImage;
@@ -21,17 +21,18 @@ pub fn build_regions_and_assign_sites(sites: Vec<Point>) -> Vec<Region> {
     regions
 }
 
-pub fn build_provinces_and_generate_sites(grid_size: &Size16, cell_size: &Size16) -> Vec<Province> {
-    let mut provinces: Vec<Province> =
-        Vec::with_capacity((grid_size.width * grid_size.height) as usize);
+pub fn build_provinces_and_generate_sites(planet_settings: &PlanetSettings) -> Vec<Province> {
 
-    for x in 0..grid_size.width {
-        for y in 0..grid_size.height {
-            let random_x = rand::thread_rng().gen_range(0..cell_size.width);
-            let random_y = rand::thread_rng().gen_range(0..cell_size.height);
+    let mut provinces: Vec<Province> =
+        Vec::with_capacity((planet_settings.province_grid_size.width * planet_settings.province_grid_size.height) as usize);
+
+    for x in 0..planet_settings.province_grid_size.width {
+        for y in 0..planet_settings.province_grid_size.height {
+            let random_x = rand::thread_rng().gen_range(0..planet_settings.province_cell_size.width);
+            let random_y = rand::thread_rng().gen_range(0..planet_settings.province_cell_size.height);
             let site_point = Point16 {
-                x: ((x * cell_size.width) + random_x),
-                y: ((y * cell_size.height) + random_y),
+                x: ((x * planet_settings.province_cell_size.width) + random_x),
+                y: ((y * planet_settings.province_cell_size.height) + random_y),
             };
 
             provinces.push(Province::new(Point16 { x, y }, site_point));
@@ -41,16 +42,16 @@ pub fn build_provinces_and_generate_sites(grid_size: &Size16, cell_size: &Size16
     provinces
 }
 
-pub fn build_realms_and_generate_sites(grid_size: &Size16, cell_size: &Size16) -> Vec<Realm> {
-    let mut realms: Vec<Realm> = Vec::with_capacity((grid_size.width * grid_size.height) as usize);
+pub fn build_realms_and_generate_sites(planet_setting: &PlanetSettings) -> Vec<Realm> {
+    let mut realms: Vec<Realm> = Vec::with_capacity((planet_setting.realm_grid_size.width * planet_setting.realm_cell_size.height) as usize);
 
-    for x in 0..grid_size.width {
-        for y in 0..grid_size.height {
-            let random_x = rand::thread_rng().gen_range(0..cell_size.width);
-            let random_y = rand::thread_rng().gen_range(0..cell_size.height);
+    for x in 0..planet_setting.realm_grid_size.width {
+        for y in 0..planet_setting.realm_grid_size.height {
+            let random_x = rand::thread_rng().gen_range(0..planet_setting.realm_cell_size.width);
+            let random_y = rand::thread_rng().gen_range(0..planet_setting.realm_cell_size.height);
             let site_point = Point16 {
-                x: ((x * cell_size.width) + random_x),
-                y: ((y * cell_size.height) + random_y),
+                x: ((x * planet_setting.realm_cell_size.width) + random_x),
+                y: ((y * planet_setting.realm_cell_size.height) + random_y),
             };
 
             realms.push(Realm::new(Point16 { x, y }, site_point));
@@ -60,19 +61,16 @@ pub fn build_realms_and_generate_sites(grid_size: &Size16, cell_size: &Size16) -
     realms
 }
 
-pub fn build_continents_with_site(
-    cell_size: &Size16,
-    grid_size: &Size16,
-) -> HashMap<(u16, u16), Continent> {
+pub fn build_continents_with_site(planet_settings: &PlanetSettings) -> HashMap<(u16, u16), Continent> {
     let mut continents: HashMap<(u16, u16), Continent> = HashMap::new();
 
-    for x in 0..grid_size.width {
-        for y in 0..grid_size.height {
-            let random_x = rand::thread_rng().gen_range(0..cell_size.width);
-            let random_y = rand::thread_rng().gen_range(0..cell_size.height);
+    for x in 0..planet_settings.continent_grid_size.width {
+        for y in 0..planet_settings.continent_grid_size.height {
+            let random_x = rand::thread_rng().gen_range(0..planet_settings.continent_cell_size.width);
+            let random_y = rand::thread_rng().gen_range(0..planet_settings.continent_cell_size.height);
             let site = Point16 {
-                x: (x * cell_size.width) + random_x,
-                y: (y * cell_size.height) + random_y,
+                x: (x * planet_settings.continent_cell_size.width) + random_x,
+                y: (y * planet_settings.continent_cell_size.height) + random_y,
             };
 
             let continent_point = Continent::new(
@@ -93,8 +91,7 @@ pub fn build_continents_with_site(
 pub fn assign_regions_to_provinces(
     regions: Vec<Region>,
     provinces: &mut Vec<Province>,
-    province_grid_size: &Size16,
-    province_cell_size: &Size16,
+    planet_settings: &PlanetSettings
 ) {
     // create realms hashmap
     let mut provinces_hmap: HashMap<(u16, u16), (u16, u16, u16, u16, usize)> = HashMap::new();
@@ -114,8 +111,8 @@ pub fn assign_regions_to_provinces(
 
     // iterate over realms and assing provinces to realms hashmap
     for region in regions {
-        let p_x = (region.site_point.x as f32 / province_cell_size.width as f32).floor() as u16;
-        let p_y = (region.site_point.y as f32 / province_cell_size.height as f32).floor() as u16;
+        let p_x = (region.site_point.x as f32 / planet_settings.province_cell_size.width as f32).floor() as u16;
+        let p_y = (region.site_point.y as f32 / planet_settings.province_cell_size.height as f32).floor() as u16;
 
         let mut nearest_distance = f32::INFINITY;
         let mut nearest_point = Point16::new(0, 0);
@@ -129,8 +126,8 @@ pub fn assign_regions_to_provinces(
                 // Skip if the neighbor cell is out of the grid bounds.
                 if bx < 0
                     || by < 0
-                    || bx >= province_grid_size.width as i32
-                    || by >= province_grid_size.height as i32
+                    || bx >= planet_settings.province_grid_size.width as i32
+                    || by >= planet_settings.province_grid_size.height as i32
                 {
                     continue;
                 }
@@ -179,8 +176,7 @@ pub fn assign_regions_to_provinces(
 pub fn assign_provinces_to_realms(
     provinces: Vec<Province>,
     realms: &mut Vec<Realm>,
-    realm_grid_size: &Size16,
-    realm_cell_size: &Size16,
+    planet_settings: &PlanetSettings
 ) {
     // create realms hashmap
     let mut realms_hmap: HashMap<(u16, u16), (u16, u16, u16, u16, usize)> = HashMap::new();
@@ -200,8 +196,8 @@ pub fn assign_provinces_to_realms(
 
     // iterate over realms and assing provinces to realms hashmap
     for province in provinces {
-        let p_x = (province.site_point.x as f32 / realm_cell_size.width as f32).floor() as u16;
-        let p_y = (province.site_point.y as f32 / realm_cell_size.height as f32).floor() as u16;
+        let p_x = (province.site_point.x as f32 / planet_settings.realm_cell_size.width as f32).floor() as u16;
+        let p_y = (province.site_point.y as f32 / planet_settings.realm_cell_size.height as f32).floor() as u16;
 
         let mut nearest_distance = f32::INFINITY;
         let mut nearest_point = Point16::new(0, 0);
@@ -215,8 +211,8 @@ pub fn assign_provinces_to_realms(
                 // Skip if the neighbor cell is out of the grid bounds.
                 if bx < 0
                     || by < 0
-                    || bx >= realm_grid_size.width as i32
-                    || by >= realm_grid_size.height as i32
+                    || bx >= planet_settings.realm_grid_size.width as i32
+                    || by >= planet_settings.realm_grid_size.height as i32
                 {
                     continue;
                 }
@@ -266,13 +262,12 @@ pub fn assign_provinces_to_realms(
 pub fn assign_realms_to_continents_and_calculate_region_color(
     realms: Vec<Realm>,
     continents: &mut HashMap<(u16, u16), Continent>,
-    continent_grid_size: &Size16,
-    continent_cell_size: Size16,
+    planet_settings: &PlanetSettings
 ) {
     // iterate over realms
     for realm in realms {
-        let p_x = (realm.site_point.x as f32 / continent_cell_size.width as f32).floor() as u16;
-        let p_y = (realm.site_point.y as f32 / continent_cell_size.height as f32).floor() as u16;
+        let p_x = (realm.site_point.x as f32 / planet_settings.continent_cell_size.width as f32).floor() as u16;
+        let p_y = (realm.site_point.y as f32 / planet_settings.continent_cell_size.height as f32).floor() as u16;
 
         let mut nearest_distance = f32::INFINITY;
         let mut nearest_point = Point16::new(0, 0);
@@ -286,8 +281,8 @@ pub fn assign_realms_to_continents_and_calculate_region_color(
                 // Skip if the neighbor cell is out of the grid bounds.
                 if bx < 0
                     || by < 0
-                    || bx >= continent_grid_size.width as i32
-                    || by >= continent_grid_size.height as i32
+                    || bx >= planet_settings.continent_grid_size.width as i32
+                    || by >= planet_settings.continent_grid_size.height as i32
                 {
                     continue;
                 }
@@ -334,6 +329,171 @@ pub fn assign_realms_to_continents_and_calculate_region_color(
             });
     }
 
+}
+
+pub fn merge_continents(
+    continents: &mut HashMap<(u16, u16), Continent>,
+    planet_settings: &PlanetSettings
+) -> HashMap<(u16, u16), Continent> {
+    
+    let mut new_continents: HashMap<(u16, u16), Continent> = HashMap::new();
+
+    println!("{:?}", continents.len());
+
+    // create top left
+    let inserted_coord = (0, 0);
+    let mut continent = continents.remove(&inserted_coord).unwrap();
+    println!("into: {:?} <- INSERT {:?}", inserted_coord, inserted_coord);
+    new_continents.insert(inserted_coord, continent);
+
+    println!("new_continents.len(): {:?}", new_continents.len());
+    println!("- FINISHED create top left -> {:?}", continents.len());
+
+
+
+    // first column
+    for y in 1..planet_settings.continent_grid_size.height {
+        let x = 0;
+
+        if y == 1 {
+            let inserted_coord = (x, y);
+            let to_remove = &(x, y + 1);
+            let mut continent = continents.remove(&inserted_coord).unwrap();
+            let bottom_c = continents.remove(to_remove).unwrap();
+            for realm in bottom_c.realms {
+                continent.realms.push(realm);
+            }
+    
+            println!("into: {:?} <- INSERT {:?} + realms", inserted_coord, to_remove);
+            new_continents.insert(inserted_coord, continent);
+        } else if y > 2 {
+
+            let inserted_coord = (x, y - 1);
+            let to_remove = &(x, y);
+            let continent = continents.remove(to_remove).unwrap();
+
+            println!("into: {:?} <- INSERT {:?}", inserted_coord, to_remove);
+            new_continents.insert(inserted_coord, continent);
+        }
+    }
+    println!("- finished first column {:?}", continents.len());
+    println!("new_continents.len(): {:?}", new_continents.len());
+
+    // first row
+    for x in 1..planet_settings.continent_grid_size.width {
+        let y = 0;
+
+        if x == 1 {
+            let inserted_coord = (x, y);
+            let to_remove = &(x + 1, y);
+            let mut continent = continents.remove(&inserted_coord).unwrap();
+            let right_c = continents.remove(to_remove).unwrap();
+            for realm in right_c.realms {
+                continent.realms.push(realm);
+            }
+    
+            println!("into: {:?} <- INSERT {:?} + realms", inserted_coord, to_remove);
+            new_continents.insert(inserted_coord, continent);
+        } else if x > 2 {
+
+            let inserted_coord = (x - 1, y);
+            let to_remove = &(x, y);
+            let continent = continents.remove(to_remove).unwrap();
+
+            println!("into: {:?} <- INSERT {:?}", inserted_coord, to_remove);
+            new_continents.insert(inserted_coord, continent);
+        }
+    }
+
+
+    // create the 4 cubed
+    let inserted_coord = (1, 1);
+    let mut continent = continents.remove(&inserted_coord).unwrap();
+    let right_c = continents.remove(&(2, 1)).unwrap();
+    for realm in right_c.realms {
+        continent.realms.push(realm);
+    }
+    let bottom_c = continents.remove(&(1, 2)).unwrap();
+    for realm in bottom_c.realms {
+        continent.realms.push(realm);
+    }
+    let bottom_right_c = continents.remove(&(2, 2)).unwrap();
+    for realm in bottom_right_c.realms {
+        continent.realms.push(realm);
+    }
+
+    println!("into: {:?} <- INSERT {:?} + realms", inserted_coord, (2, 1));
+    println!("into: {:?} <- INSERT {:?} + realms", inserted_coord, (1, 2));
+    println!("into: {:?} <- INSERT {:?} + realms", inserted_coord, (2, 2));
+    new_continents.insert(inserted_coord, continent);
+
+    println!("- finished create the 4 cubed -> {:?}", continents.len());
+    println!("new_continents.len(): {:?}", new_continents.len());
+
+    // create the 2 2 vertical
+    for y in 3..planet_settings.continent_grid_size.height {
+        let x = 1;
+
+        let inserted_coord = (x, y - 1);
+        let moved_coord = (x, y);
+        let to_remove = &(x + 1, y);
+        let mut continent = continents.remove(&moved_coord).unwrap();
+        let right_continent = continents.remove(to_remove).unwrap();
+        for realm in right_continent.realms {
+            continent.realms.push(realm);
+        }
+
+        println!("into: {:?} <- INSERT {:?} + realms of {:?}", inserted_coord, moved_coord, to_remove);
+        new_continents.insert(inserted_coord, continent);
+    }
+
+    println!("- create the 2 2 vertical -> {:?}", continents.len());
+    println!("new_continents.len(): {:?}", new_continents.len());
+
+    // create the 2 2 horizontal
+    for x in 3..planet_settings.continent_grid_size.width {
+        let y = 1;
+
+        let inserted_coord = (x - 1, y);
+        let moved_coord = (x, y);
+        let to_remove = &(x, y + 1);
+        let mut continent = continents.remove(&moved_coord).unwrap();
+        let bottom_c = continents.remove(to_remove).unwrap();
+        for realm in bottom_c.realms {
+            continent.realms.push(realm);
+        }
+
+        println!("into: {:?} <- INSERT {:?} + realms of {:?}", inserted_coord, moved_coord, to_remove);
+        new_continents.insert(inserted_coord, continent);
+    }
+
+    println!("- FINISHED create the 2 2 horizontal -> {:?}", continents.len());
+    println!("new_continents.len(): {:?}", new_continents.len());
+
+
+    // move the rest one index less
+    for x in 3..planet_settings.continent_grid_size.width {
+        for y in 3..planet_settings.continent_grid_size.height {
+
+            let inserted_coord = (x - 1, y - 1);
+            let to_remove = &(x, y);
+            let continent = continents.remove(to_remove).unwrap();
+
+            println!("into: {:?} <- INSERT {:?}", inserted_coord, to_remove);
+            new_continents.insert(inserted_coord, continent);
+        }
+    }
+
+    println!("- FINISHED move the rest one index less -> {:?}", continents.len());
+    println!("new_continents.len(): {:?}", new_continents.len());
+
+    new_continents
+}
+
+pub fn assign_continent_gradient_to_pixels(
+    continents: &mut HashMap<(u16, u16), Continent>,
+    planet_settings: &PlanetSettings
+) {
     // load gradient images so we can calculate the pixel value of the region
     let mut gradient_images: HashMap<u8, GrayImage> = HashMap::new();
     for continent in continents.values() {
@@ -346,8 +506,8 @@ pub fn assign_realms_to_continents_and_calculate_region_color(
     }
 
     // iterate over regions and assign continent gradient color to pixels
-    for x in 0..continent_grid_size.width {
-        for y in 0..continent_grid_size.height {
+    for x in 0..planet_settings.continent_grid_size.width {
+        for y in 0..planet_settings.continent_grid_size.height {
             continents.get_mut(&(x, y)).map(|continent| {
                 let square_size = Size16::new(
                     continent.top_right.x - continent.bottom_left.x,

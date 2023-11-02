@@ -4,76 +4,182 @@ mod voronoi_builder;
 
 use std::{env, time::SystemTime};
 
-use gamescript::models::{
-    continent::{Planet, Realm},
-    point::Size16,
+use gamescript::{
+    file_read_write,
+    models::{
+        continent::{Planet, PlanetSettings, Realm, Region},
+        point::Size16,
+    }, json_read_write, bin_read_write,
 };
-
-const DIST_FOLDER: &str = "dist/";
+use world::LIB_NAME;
 
 fn main() {
     let time_now = std::time::SystemTime::now();
     let args: Vec<String> = env::args().collect();
+    let dir_name: Option<String> = file_read_write::dir_name(LIB_NAME);
+    let dist_folder: &str = &format!("{}{}", dir_name.unwrap(), "__dist");
+    println!("dist_folder: {}", dist_folder);
 
-    let img_size: Size16;
     let planet: Planet;
 
-    if args.contains(&String::from("load-and-draw")) {
-        planet = load_planet();
-        image_builder::build_planet_image(&planet, &format!("{}{}", DIST_FOLDER, "continets.png"));
+    let load_and_draw = args.contains(&String::from("load-and-draw"));
+    // let load_and_draw = true;
+
+    if load_and_draw {
+        let planet: Planet = bin_read_write::deserialize_bin(&format!("{}\\{}", dist_folder, "planet.bin"));
+        let path: &String = &format!("{}\\{}", dist_folder, "planet_settings.json");
+        let planet_settings: PlanetSettings = json_read_write::deserialize_json(path);
+        image_builder::build_planet_image(
+            &planet,
+            &planet_settings,
+            &format!("{}\\{}", dist_folder, "4__continets.png"),
+        );
     } else if args.len() == 1
         || args.contains(&String::from("build-and-draw"))
         || args.contains(&String::from("build"))
     {
         // (768, 384);
-        img_size = Size16::new(1536, 768);
-        let region_pref_width = 512;
-        let province_pref_width = 128; // 256
-        let realm_pref_width = 64;
-        let continent_pref_width = 12; // 16
+        let planet_settings = create_planet_settings(1536, 768, 512, 128, 64, 12);
 
-        planet = build_planet(
-            &img_size,
-            region_pref_width,
-            province_pref_width,
-            realm_pref_width,
-            continent_pref_width,
-            time_now,
-        );
+        planet = build_planet(&planet_settings, dist_folder, time_now);
 
         if args.contains(&String::from("build-and-draw")) {
             image_builder::build_planet_image(
-                &planet,
-                &format!("{}{}", DIST_FOLDER, "continets.png"),
+                &planet, &planet_settings,
+                &format!("{}\\{}", dist_folder, "4__continets.png"),
             );
         }
     }
 }
 
-fn load_planet() -> Planet {
-    let bin_path = "data.bin";
-    let planet = gamescript::bin_read_write::deserialize_bin(bin_path);
+fn build_planet(
+    planet_settings: &PlanetSettings,
+    dist_folder: &str,
+    time_now: SystemTime,
+) -> Planet {
+    println!("{:?}", planet_settings);
+
+    // make regions
+
+    let mut regions: Vec<Region>;
+
+    let build_regions = false;
+    if build_regions {
+        let region_sites_len = ((planet_settings.region_grid_size.width / 2)
+            * (planet_settings.region_grid_size.height / 2))
+            as usize;
+        let sites =
+            voronoi_builder::generate_scattered_sites(&planet_settings.img_size, region_sites_len);
+        regions = continent_builder::build_regions_and_assign_sites(sites);
+        voronoi_builder::build_voronoi_and_apply_site_pixels_and_corners(
+            &planet_settings.img_size,
+            &mut regions,
+        );
+
+        let path = &format!("{}\\{}", dist_folder, "regions.bin");
+        gamescript::bin_read_write::write(&regions, path);
+    } else {
+        regions = gamescript::bin_read_write::deserialize_bin(&format!(
+            "{}\\{}",
+            dist_folder, "regions.bin"
+        ));
+    }
+    println!("Finished regions -> {}", get_elapsed_time(&time_now));
+
+    image_builder::build_regions_image(
+        &planet_settings.img_size,
+        &regions,
+        &format!("{}\\{}", dist_folder, "1__regions.png"),
+    );
+
+    // make provinces
+    let mut provinces = continent_builder::build_provinces_and_generate_sites(&planet_settings);
+    continent_builder::assign_regions_to_provinces(regions, &mut provinces, &planet_settings);
+    println!("Finished provinces -> {}", get_elapsed_time(&time_now));
+    image_builder::build_provinces_image(
+        &planet_settings.img_size,
+        &provinces,
+        &format!("{}\\{}", dist_folder, "2__provinces.png"),
+    );
+
+    // make realms
+    let mut realms: Vec<Realm> =
+        continent_builder::build_realms_and_generate_sites(&planet_settings);
+    continent_builder::assign_provinces_to_realms(provinces, &mut realms, &planet_settings);
+    println!("Finished realms -> {}", get_elapsed_time(&time_now));
+    image_builder::build_realms_image(
+        &planet_settings.img_size,
+        &realms,
+        &format!("{}\\{}", dist_folder, "3__realms.png"),
+    );
+
+    // make continents and apply realm to them based off of distance
+    let mut continents = continent_builder::build_continents_with_site(&planet_settings);
+    continent_builder::assign_realms_to_continents_and_calculate_region_color(
+        realms,
+        &mut continents,
+        &planet_settings,
+    );
+    println!(
+        "Finished creating continents -> {}",
+        get_elapsed_time(&time_now)
+    );
+
+    //--------
+
+    let mut new_continents
+        = continent_builder::merge_continents(&mut continents, &planet_settings);
+    println!("Merge continents -> {}", get_elapsed_time(&time_now));
+
+
+    image_builder::debug_planet_image(
+        &new_continents, &planet_settings,
+        &format!("{}\\{}", dist_folder, "4__continets.png"),
+    );
+
+
+    //-----------------
+
+    // continent_builder::assign_continent_gradient_to_pixels(&mut new_continents, &planet_settings);
+    // println!("Finished planet -> {}", get_elapsed_time(&time_now));
+
+    // save planet for futher use
+    let planet = Planet {
+        img_size: Size16 {
+            width: planet_settings.img_size.width,
+            height: planet_settings.img_size.height,
+        },
+        continents: new_continents,
+    };
+    let path = &format!("{}\\{}", dist_folder, "planet.bin");
+    gamescript::bin_read_write::write(&planet, path);
+    let path = &format!("{}\\{}", dist_folder, "planet_settings.json");
+    gamescript::json_read_write::write(&planet_settings, path);
+
+    println!("{}", get_elapsed_time(&time_now));
+
     planet
 }
 
-fn build_planet(
-    img_size: &Size16,
+fn create_planet_settings(
+    width: u16,
+    height: u16,
     region_pref_width: u16,
-    province_pref_width: u16,
+    province_pref_width: u16, // 256
     realm_pref_width: u16,
-    continent_pref_width: u16,
-    time_now: SystemTime,
-) -> Planet {
+    continent_pref_width: u16, // 16
+) -> PlanetSettings {
+    let img_size = Size16::new(width, height);
     let region_divider = img_size.width / region_pref_width;
     let province_divider = img_size.width / province_pref_width;
     let realm_divider = img_size.width / realm_pref_width;
     let continent_divider = img_size.width / continent_pref_width;
 
-    let region_grid_size: Size16 = Size16::new(
+    let region_grid_size = Size16::new(
         img_size.width / region_divider,
         img_size.height / region_divider,
     );
-    let province_grid_size: Size16 = Size16::new(
+    let province_grid_size = Size16::new(
         img_size.width / province_divider,
         img_size.height / province_divider,
     );
@@ -85,105 +191,33 @@ fn build_planet(
         img_size.width / continent_divider,
         img_size.height / continent_divider,
     );
-
-    println!("Making map size ({}, {}); region size ({}, {}); province size ({}, {}); realm size ({}, {}); continent size ({}, {})"
-        , img_size.width
-        , img_size.height
-        , region_grid_size.width
-        , region_grid_size.height
-        , province_grid_size.width
-        , province_grid_size.height
-        , realm_grid_size.width
-        , realm_grid_size.height
-        , continent_grid_size.width
-        , continent_grid_size.height
-    );
-
-    // make regions (768, 384)
-    let region_sites_len = ((region_grid_size.width / 2) * (region_grid_size.height / 2)) as usize;
-    let sites = voronoi_builder::generate_scattered_sites(&img_size, region_sites_len);
-    let mut regions = continent_builder::build_regions_and_assign_sites(sites);
-    voronoi_builder::build_voronoi_and_apply_site_pixels_and_corners(&img_size, &mut regions);
-    println!("Finished regions -> {}", get_elapsed_time(&time_now));
-    
-    image_builder::build_regions_image(
-        &img_size,
-        &regions,
-        &format!("{}{}", DIST_FOLDER, "regions.png"),
-    );
-
-    // make provinces
     let province_cell_size = Size16 {
         width: img_size.width / province_grid_size.width,
         height: img_size.height / province_grid_size.height,
     };
-    let mut provinces = continent_builder::build_provinces_and_generate_sites(
-        &province_grid_size,
-        &province_cell_size,
-    );
-    continent_builder::assign_regions_to_provinces(
-        regions,
-        &mut provinces,
-        &province_grid_size,
-        &province_cell_size,
-    );
-    println!("Finished provinces -> {}", get_elapsed_time(&time_now));
-    image_builder::build_provinces_image(
-        &img_size,
-        &provinces,
-        &format!("{}{}", DIST_FOLDER, "provinces.png"),
-    );
-
-    // make realms
     let realm_cell_size = Size16 {
         width: img_size.width / realm_grid_size.width,
         height: img_size.height / realm_grid_size.height,
     };
-    let mut realms: Vec<Realm> =
-        continent_builder::build_realms_and_generate_sites(&realm_grid_size, &realm_cell_size);
-    continent_builder::assign_provinces_to_realms(
-        provinces,
-        &mut realms,
-        &realm_grid_size,
-        &realm_cell_size,
-    );
-    println!("Finished realms -> {}", get_elapsed_time(&time_now));
-    image_builder::build_realms_image(
-        &img_size,
-        &realms,
-        &format!("{}{}", DIST_FOLDER, "realms.png"),
-    );
-
-    // make continents and apply realm to them based off of distance
     let continent_cell_size = Size16 {
         width: img_size.width / continent_grid_size.width,
         height: img_size.height / continent_grid_size.height,
     };
-    let mut continents =
-        continent_builder::build_continents_with_site(&continent_cell_size, &continent_grid_size);
-    // assign realms to continents
-    continent_builder::assign_realms_to_continents_and_calculate_region_color(
-        realms,
-        &mut continents,
-        &continent_grid_size,
-        continent_cell_size,
-    );
-    println!("Finished continents -> {}", get_elapsed_time(&time_now));
 
-    let planet = Planet {
-        img_size: Size16 {
-            width: img_size.width,
-            height: img_size.height,
-        },
-        grid_size: continent_grid_size,
-        continents,
-    };
-    let bin_path = "data.bin";
-    gamescript::bin_read_write::write(&planet, bin_path);
-
-    println!("{}", get_elapsed_time(&time_now));
-
-    planet
+    PlanetSettings {
+        img_size,
+        region_pref_width,
+        province_pref_width,
+        realm_pref_width,
+        continent_pref_width,
+        region_grid_size,
+        province_grid_size,
+        realm_grid_size,
+        continent_grid_size,
+        province_cell_size: province_cell_size,
+        realm_cell_size: realm_cell_size,
+        continent_cell_size: continent_cell_size,
+    }
 }
 
 fn get_elapsed_time(time_now: &SystemTime) -> String {

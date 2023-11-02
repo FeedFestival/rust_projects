@@ -1,6 +1,7 @@
 use std::{collections::HashMap, env, path::Path};
-use std::thread;
 use image::{imageops, DynamicImage, ImageBuffer, Luma};
+
+const LIB_NAME: &str = "tectonic-process";
 
 pub struct Color8 {
     pub r: u8,
@@ -42,11 +43,17 @@ const HIGH_MOUNTAIN: Color8 = Color8 { r: 202, g: 158, b: 100 };   // CA9E64 = r
 const MOUNTAIN_PLATEAUS: Color8 = Color8 { r: 166, g: 135, b: 113 };   // A68771 = rgb(166, 135, 113)
 const PEAKS: Color8 = Color8 { r: 255, g: 255, b: 255 };   // FFFFFF
 
+use gamescript::file_read_write;
+
 fn main() {
+
+    let dir_name = file_read_write::dir_name(LIB_NAME);
+    println!("{:?}", dir_name);
+
     if let Ok(project_dir) = env::current_dir() {
         
         let mut project_dir = project_dir.to_string_lossy().to_string();
-        project_dir = project_dir.replace("tectonic-process", "world-tweak");
+        project_dir = project_dir.replace(LIB_NAME, "world-tweak");
         let image_name = "final.png";
         let image_path = format!("{}/{}", project_dir, image_name);
         

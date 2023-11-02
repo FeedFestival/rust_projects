@@ -3,9 +3,24 @@ use serde::{Deserialize, Serialize};
 use super::point::{Point16, Size16};
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
+pub struct PlanetSettings {
+    pub img_size: Size16,
+    pub region_pref_width: u16,
+    pub province_pref_width: u16,
+    pub realm_pref_width: u16,
+    pub continent_pref_width: u16,
+    pub region_grid_size: Size16,
+    pub province_grid_size: Size16,
+    pub realm_grid_size: Size16,
+    pub continent_grid_size: Size16,
+    pub province_cell_size: Size16,
+    pub realm_cell_size: Size16,
+    pub continent_cell_size: Size16,
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct Planet {
     pub img_size: Size16,
-    pub grid_size: Size16,
     pub continents: HashMap<(u16, u16), Continent>
 }
 
@@ -16,9 +31,8 @@ pub struct Continent {
     pub top_right: Point16,
     pub bottom_left: Point16,
     pub plate_movement_direction: u8,
-    // VoronoiEdge edge { get; set; }
     pub elevation: f32,
-    // Vector2Int[] gradientSquarePixelCoords { get; set; }
+    pub is_empty: bool,
     pub realms: Vec<Realm>,
 }
 
@@ -31,9 +45,11 @@ impl Continent {
             bottom_left: Point16::new(u16::MAX, u16::MAX),
             plate_movement_direction: 0,
             elevation: 0.0,
+            is_empty: false,
             realms: Vec::new()
         }
     }
+    
     pub fn new(grid_coord: Point16, site_point: Point16, plate_movement_direction: u8, elevation: f32) -> Continent {
         Continent {
             grid_coord,
@@ -42,6 +58,7 @@ impl Continent {
             bottom_left: Point16::new(u16::MAX, u16::MAX),
             plate_movement_direction,
             elevation,
+            is_empty: false,
             realms: Vec::new()
         }
     }

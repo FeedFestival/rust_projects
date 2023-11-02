@@ -14,7 +14,11 @@ pub struct Color8 {
     pub g: u8,
     pub b: u8,
 }
-
+impl Color8 {
+    pub fn new(r: u8, g: u8, b: u8) -> Color8 {
+        return Color8 { r, g, b };
+    }
+}
 pub fn new_color(r: u8, g: u8, b: u8) -> Color8 {
     return Color8 { r, g, b };
 }

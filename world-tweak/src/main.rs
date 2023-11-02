@@ -1,23 +1,31 @@
 mod equalize_realms;
 mod seamless;
 
-use gamescript::models::continent::Planet;
+use gamescript::{
+    bin_read_write, file_read_write, json_read_write, models::continent::PlanetSettings,
+};
 use image::Rgb;
-use std::env;
+pub const LIB_NAME: &str = "world-tweak";
 
 fn main() {
-    let planet = load_planet();
+    let dir_name: Option<String> = file_read_write::dir_name(LIB_NAME);
+    let dist_folder: &str = &format!("{}{}", dir_name.unwrap(), "__dist");
+    let path = &format!("{}\\{}", dist_folder, "planet.bin");
+    let planet = bin_read_write::deserialize_bin(path);
+    let path: &String = &format!("{}\\{}", dist_folder, "planet_settings.json");
+    let planet_settings: PlanetSettings = json_read_write::deserialize_json(path);
 
-    println!("{:?}", planet.grid_size);
+    seamless::make(&planet, &planet_settings);
 
-    seamless::make(&planet);
+    return;
 
-    let equalize_tuple = equalize_realms::equalize_light_realms(&planet, 95, 42);
+    let equalize_tuple = equalize_realms::equalize_light_realms(&planet, &planet_settings, 95, 42);
     let modified_pixels = &equalize_tuple.0;
     let mut img_buf = equalize_tuple.1;
 
-    for x in 0..planet.grid_size.width {
-        for y in 0..planet.grid_size.height {
+    // build image
+    for x in 0..planet_settings.continent_grid_size.width {
+        for y in 0..planet_settings.continent_grid_size.height {
             let continent = planet.continents.get(&(x, y)).unwrap();
 
             for rlm in &continent.realms {
@@ -38,13 +46,4 @@ fn main() {
     }
 
     img_buf.save("final.png").unwrap();
-}
-
-fn load_planet() -> Planet {
-    let mut project_dir = env::current_dir().unwrap().to_string_lossy().to_string();
-    project_dir = project_dir.replace("world-tweak", "world");
-    let bin_path = format!("{}//{}", project_dir, "data.bin");
-    println!("path: {}", bin_path);
-    let planet = gamescript::bin_read_write::deserialize_bin(bin_path.as_str());
-    planet
 }
