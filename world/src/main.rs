@@ -5,11 +5,11 @@ mod voronoi_builder;
 use std::{env, time::SystemTime};
 
 use gamescript::{
-    file_read_write,
+    bin_read_write, file_read_write, json_read_write,
     models::{
         continent::{Planet, PlanetSettings, Realm, Region},
         point::Size16,
-    }, json_read_write, bin_read_write,
+    },
 };
 use world::LIB_NAME;
 
@@ -26,7 +26,8 @@ fn main() {
     // let load_and_draw = true;
 
     if load_and_draw {
-        let planet: Planet = bin_read_write::deserialize_bin(&format!("{}\\{}", dist_folder, "planet.bin"));
+        let planet: Planet =
+            bin_read_write::deserialize_bin(&format!("{}\\{}", dist_folder, "planet.bin"));
         let path: &String = &format!("{}\\{}", dist_folder, "planet_settings.json");
         let planet_settings: PlanetSettings = json_read_write::deserialize_json(path);
         image_builder::build_planet_image(
@@ -45,7 +46,8 @@ fn main() {
 
         if args.contains(&String::from("build-and-draw")) {
             image_builder::build_planet_image(
-                &planet, &planet_settings,
+                &planet,
+                &planet_settings,
                 &format!("{}\\{}", dist_folder, "4__continets.png"),
             );
         }
@@ -63,7 +65,7 @@ fn build_planet(
 
     let mut regions: Vec<Region>;
 
-    let build_regions = false;
+    let build_regions = true;
     if build_regions {
         let region_sites_len = ((planet_settings.region_grid_size.width / 2)
             * (planet_settings.region_grid_size.height / 2))
@@ -115,7 +117,7 @@ fn build_planet(
 
     // make continents and apply realm to them based off of distance
     let mut continents = continent_builder::build_continents_with_site(&planet_settings);
-    continent_builder::assign_realms_to_continents_and_calculate_region_color(
+    continent_builder::assign_realms_to_continents(
         realms,
         &mut continents,
         &planet_settings,
@@ -127,30 +129,41 @@ fn build_planet(
 
     //--------
 
-    let mut new_continents
-        = continent_builder::merge_continents(&mut continents, &planet_settings);
+    let continents_tuple = continent_builder::merge_continents(&mut continents, &planet_settings);
+    // save planet for futher use
+    let mut planet = Planet {
+        edge_continents: continents_tuple.0,
+        continents: continents_tuple.1,
+    };
     println!("Merge continents -> {}", get_elapsed_time(&time_now));
 
-
     image_builder::debug_planet_image(
-        &new_continents, &planet_settings,
-        &format!("{}\\{}", dist_folder, "4__continets.png"),
+        &planet,
+        &planet_settings,
+        &format!("{}\\{}", dist_folder, "debug__continets.png"),
+        false
     );
 
+    continent_builder::assign_continent_gradient_to_pixels(&mut planet, &planet_settings);
+    println!("Finished planet -> {}", get_elapsed_time(&time_now));
+
+    continent_builder::move_continents_pixels_towards_edge(
+        &mut planet,
+        &planet_settings,
+    );
+    println!("Move continents pixels -> {}", get_elapsed_time(&time_now));
+
+    image_builder::debug_planet_image(
+        &planet,
+        &planet_settings,
+        &format!("{}\\{}", dist_folder, "debug_moved__continets.png"),
+        true
+    );
 
     //-----------------
 
-    // continent_builder::assign_continent_gradient_to_pixels(&mut new_continents, &planet_settings);
-    // println!("Finished planet -> {}", get_elapsed_time(&time_now));
+    
 
-    // save planet for futher use
-    let planet = Planet {
-        img_size: Size16 {
-            width: planet_settings.img_size.width,
-            height: planet_settings.img_size.height,
-        },
-        continents: new_continents,
-    };
     let path = &format!("{}\\{}", dist_folder, "planet.bin");
     gamescript::bin_read_write::write(&planet, path);
     let path = &format!("{}\\{}", dist_folder, "planet_settings.json");
@@ -169,11 +182,31 @@ fn create_planet_settings(
     realm_pref_width: u16,
     continent_pref_width: u16, // 16
 ) -> PlanetSettings {
-    let img_size = Size16::new(width, height);
+    let final_img_size = Size16::new(width, height);
+    let continent_divider = final_img_size.width / continent_pref_width;
+    let final_continent_grid_size = Size16::new(
+        final_img_size.width / continent_divider,
+        final_img_size.height / continent_divider,
+    );
+    let continent_cell_size = Size16 {
+        width: final_img_size.width / final_continent_grid_size.width,
+        height: final_img_size.height / final_continent_grid_size.height,
+    };
+    //
+    let continent_multiplier = 2;
+
+    let img_size = Size16::new(
+        width + (continent_cell_size.width * continent_multiplier),
+        height + (continent_cell_size.height * continent_multiplier),
+    );
+    let continent_grid_size = Size16::new(
+        final_continent_grid_size.width + continent_multiplier,
+        final_continent_grid_size.height + continent_multiplier,
+    );
+
     let region_divider = img_size.width / region_pref_width;
     let province_divider = img_size.width / province_pref_width;
     let realm_divider = img_size.width / realm_pref_width;
-    let continent_divider = img_size.width / continent_pref_width;
 
     let region_grid_size = Size16::new(
         img_size.width / region_divider,
@@ -187,10 +220,6 @@ fn create_planet_settings(
         img_size.width / realm_divider,
         img_size.height / realm_divider,
     );
-    let continent_grid_size = Size16::new(
-        img_size.width / continent_divider,
-        img_size.height / continent_divider,
-    );
     let province_cell_size = Size16 {
         width: img_size.width / province_grid_size.width,
         height: img_size.height / province_grid_size.height,
@@ -199,12 +228,11 @@ fn create_planet_settings(
         width: img_size.width / realm_grid_size.width,
         height: img_size.height / realm_grid_size.height,
     };
-    let continent_cell_size = Size16 {
-        width: img_size.width / continent_grid_size.width,
-        height: img_size.height / continent_grid_size.height,
-    };
 
     PlanetSettings {
+        final_img_size: final_img_size,
+        final_continent_grid_size: final_continent_grid_size,
+        //
         img_size,
         region_pref_width,
         province_pref_width,

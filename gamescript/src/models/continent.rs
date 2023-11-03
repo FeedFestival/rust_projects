@@ -4,6 +4,9 @@ use super::point::{Point16, Size16};
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct PlanetSettings {
+    pub final_img_size: Size16,
+    pub final_continent_grid_size: Size16,
+    //
     pub img_size: Size16,
     pub region_pref_width: u16,
     pub province_pref_width: u16,
@@ -20,7 +23,7 @@ pub struct PlanetSettings {
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct Planet {
-    pub img_size: Size16,
+    pub edge_continents: HashMap<(u16, u16), Continent>,
     pub continents: HashMap<(u16, u16), Continent>
 }
 
@@ -49,7 +52,7 @@ impl Continent {
             realms: Vec::new()
         }
     }
-    
+
     pub fn new(grid_coord: Point16, site_point: Point16, plate_movement_direction: u8, elevation: f32) -> Continent {
         Continent {
             grid_coord,

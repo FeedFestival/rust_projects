@@ -15,17 +15,17 @@ fn main() {
     let path: &String = &format!("{}\\{}", dist_folder, "planet_settings.json");
     let planet_settings: PlanetSettings = json_read_write::deserialize_json(path);
 
-    seamless::make(&planet, &planet_settings);
+    // seamless::make(&planet, &planet_settings);
 
-    return;
+    // return;
 
     let equalize_tuple = equalize_realms::equalize_light_realms(&planet, &planet_settings, 95, 42);
     let modified_pixels = &equalize_tuple.0;
     let mut img_buf = equalize_tuple.1;
 
     // build image
-    for x in 0..planet_settings.continent_grid_size.width {
-        for y in 0..planet_settings.continent_grid_size.height {
+    for x in 1..planet_settings.final_continent_grid_size.width {
+        for y in 1..planet_settings.final_continent_grid_size.height {
             let continent = planet.continents.get(&(x, y)).unwrap();
 
             for rlm in &continent.realms {

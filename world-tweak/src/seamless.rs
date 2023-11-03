@@ -3,19 +3,19 @@ use image::{ImageBuffer, Rgb};
 
 pub fn make(planet: &Planet, planet_settings: &PlanetSettings) {
     let mut img_buf: ImageBuffer<Rgb<u8>, Vec<u8>> =
-        ImageBuffer::new(planet.img_size.width as u32, planet.img_size.height as u32);
+        ImageBuffer::new(planet_settings.final_img_size.width as u32, planet_settings.final_img_size.height as u32);
 
-    println!("{:?}", planet_settings.continent_grid_size);
+    println!("{:?}", planet_settings.final_continent_grid_size);
     println!("{:?}", planet_settings.continent_cell_size);
 
     let mut muvable_left: Vec<&Continent> = Vec::new();
 
-    for x in 0..planet_settings.continent_grid_size.width {
-        for y in 0..planet_settings.continent_grid_size.height {
+    for x in 0..planet_settings.final_continent_grid_size.width {
+        for y in 0..planet_settings.final_continent_grid_size.height {
             let is_margin = x == 0
                 || y == 0
-                || x == planet_settings.continent_grid_size.width - 1
-                || y == planet_settings.continent_grid_size.height - 1;
+                || x == planet_settings.final_continent_grid_size.width - 1
+                || y == planet_settings.final_continent_grid_size.height - 1;
             if is_margin {
                 continue;
             }
@@ -23,7 +23,7 @@ pub fn make(planet: &Planet, planet_settings: &PlanetSettings) {
             let continent = planet.continents.get(&(x, y)).unwrap();
 
             let is_movable_left =
-                x == 1 && y >= 1 && y <= (planet_settings.continent_grid_size.height - 2);
+                x == 1 && y >= 1 && y <= (planet_settings.final_continent_grid_size.height - 2);
 
             if is_movable_left {
                 muvable_left.push(continent);
@@ -52,21 +52,21 @@ pub fn make(planet: &Planet, planet_settings: &PlanetSettings) {
     img_buf.save("centered.png").unwrap();
 
     let mut i = 0;
-    for x in 0..planet_settings.continent_grid_size.width {
-        for y in 0..planet_settings.continent_grid_size.height {
+    for x in 0..planet_settings.final_continent_grid_size.width {
+        for y in 0..planet_settings.final_continent_grid_size.height {
             let is_margin = x == 0
                 || y == 0
-                || x == planet_settings.continent_grid_size.width - 1
-                || y == planet_settings.continent_grid_size.height - 1;
+                || x == planet_settings.final_continent_grid_size.width - 1
+                || y == planet_settings.final_continent_grid_size.height - 1;
             if is_margin {
                 continue;
             }
 
             let mut continent = planet.continents.get(&(x, y)).unwrap();
 
-            let is_replaceable_right = x == (planet_settings.continent_grid_size.width - 2)
+            let is_replaceable_right = x == (planet_settings.final_continent_grid_size.width - 2)
                 && y >= 1
-                && y <= (planet_settings.continent_grid_size.height - 2);
+                && y <= (planet_settings.final_continent_grid_size.height - 2);
             let mut pixel_distance: (u32, u32) = (0, 0);
 
             if is_replaceable_right {

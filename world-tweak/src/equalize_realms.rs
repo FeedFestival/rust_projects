@@ -22,8 +22,8 @@ pub fn equalize_light_realms(planet: &Planet, planet_settings: &PlanetSettings, 
     let mut light_realms: Vec<&Realm> = Vec::new();
     let mut dark_realms: Vec<&Realm> = Vec::new();
 
-    for x in 0..planet_settings.continent_grid_size.width {
-        for y in 0..planet_settings.continent_grid_size.height {
+    for x in 1..planet_settings.final_continent_grid_size.width {
+        for y in 1..planet_settings.final_continent_grid_size.height {
             let continent = planet.continents.get(&(x, y)).unwrap();
 
             for rlm in &continent.realms {
@@ -39,11 +39,11 @@ pub fn equalize_light_realms(planet: &Planet, planet_settings: &PlanetSettings, 
     }
 
     let mut unprocessed_img_buf: ImageBuffer<Rgb<u8>, Vec<u8>> =
-        ImageBuffer::new(planet.img_size.width as u32, planet.img_size.height as u32);
+        ImageBuffer::new(planet_settings.final_img_size.width as u32, planet_settings.final_img_size.height as u32);
     let mut img_buf: ImageBuffer<Rgb<u8>, Vec<u8>> =
-        ImageBuffer::new(planet.img_size.width as u32, planet.img_size.height as u32);
-    for x in 0..planet.img_size.width {
-        for y in 0..planet.img_size.height {
+        ImageBuffer::new(planet_settings.final_img_size.width as u32, planet_settings.final_img_size.height as u32);
+    for x in 0..planet_settings.final_img_size.width {
+        for y in 0..planet_settings.final_img_size.height {
             let pixel = unprocessed_img_buf.get_pixel_mut(x as u32, y as u32);
             *pixel = Rgb([255, 0, 102]);
             let pixel = img_buf.get_pixel_mut(x as u32, y as u32);
