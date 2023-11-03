@@ -1,1 +1,1 @@
-cargo run load-and-draw
+cargo run load draw

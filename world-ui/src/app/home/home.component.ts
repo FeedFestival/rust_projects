@@ -29,7 +29,7 @@ export class HomeComponent implements OnInit {
 
   loadAndDraw(): void {
     let path = this.folderStructure?.path + '\\world\\';
-    let command = "cargo run load-and-draw";
+    let command = "cargo run load draw";
     this.executeCommand(path, command);
   }
 

@@ -8,9 +8,12 @@ use gamescript::models::{
 use image::{ImageBuffer, Luma, Rgb};
 use rand::Rng;
 
-pub fn build_regions_image(img_size: &Size16, regions: &Vec<Region>, image_path: &str) {
+use crate::cache::builder_settings;
+
+pub fn build_regions_image(regions: &Vec<Region>, image_path: &str) {
+    let settings = builder_settings();
     let mut imgbuf: ImageBuffer<Rgb<u8>, Vec<u8>> =
-        ImageBuffer::new(img_size.width as u32, img_size.height as u32);
+        ImageBuffer::new(settings.img_size.width as u32, settings.img_size.height as u32);
 
     for rg in regions {
         let mut rng = rand::thread_rng();
@@ -30,9 +33,11 @@ pub fn build_regions_image(img_size: &Size16, regions: &Vec<Region>, image_path:
     imgbuf.save(image_path).unwrap();
 }
 
-pub fn build_provinces_image(img_size: &Size16, provinces: &Vec<Province>, image_name: &str) {
+pub fn build_provinces_image(provinces: &Vec<Province>, image_name: &str) {
+    let settings = builder_settings();
+
     let mut imgbuf: ImageBuffer<Rgb<u8>, Vec<u8>> =
-        ImageBuffer::new(img_size.width as u32, img_size.height as u32);
+        ImageBuffer::new(settings.img_size.width as u32, settings.img_size.height as u32);
 
     for pv in provinces {
         let mut rng = rand::thread_rng();
@@ -54,9 +59,10 @@ pub fn build_provinces_image(img_size: &Size16, provinces: &Vec<Province>, image
     imgbuf.save(image_name).unwrap();
 }
 
-pub fn build_realms_image(img_size: &Size16, realms: &Vec<Realm>, image_name: &str) {
+pub fn build_realms_image(realms: &Vec<Realm>, image_name: &str) {
+    let settings = builder_settings();
     let mut imgbuf: ImageBuffer<Rgb<u8>, Vec<u8>> =
-        ImageBuffer::new(img_size.width as u32, img_size.height as u32);
+        ImageBuffer::new(settings.img_size.width as u32, settings.img_size.height as u32);
 
     for rlm in realms {
         let mut rng = rand::thread_rng();
@@ -134,15 +140,17 @@ pub fn debug_planet_image(
     image_name: &str,
     final_s: bool,
 ) {
+    let settings = builder_settings();
+
     let img_width = if final_s == true {
         planet_settings.final_img_size.width
     } else {
-        planet_settings.img_size.width
+        settings.img_size.width
     };
     let img_height = if final_s == true {
         planet_settings.final_img_size.height
     } else {
-        planet_settings.img_size.height
+        settings.img_size.height
     };
 
     let mut imgbuf: ImageBuffer<Rgb<u8>, Vec<u8>> =
@@ -151,12 +159,12 @@ pub fn debug_planet_image(
     let width = if final_s == true {
         planet_settings.final_continent_grid_size.width
     } else {
-        planet_settings.continent_grid_size.width
+        settings.continent_grid_size.width
     };
     let height = if final_s == true {
         planet_settings.final_continent_grid_size.height
     } else {
-        planet_settings.continent_grid_size.height
+        settings.continent_grid_size.height
     };
 
     // center

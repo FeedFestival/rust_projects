@@ -6,19 +6,7 @@ use super::point::{Point16, Size16};
 pub struct PlanetSettings {
     pub final_img_size: Size16,
     pub final_continent_grid_size: Size16,
-    //
-    pub img_size: Size16,
-    pub region_pref_width: u16,
-    pub province_pref_width: u16,
-    pub realm_pref_width: u16,
-    pub continent_pref_width: u16,
-    pub region_grid_size: Size16,
-    pub province_grid_size: Size16,
-    pub realm_grid_size: Size16,
-    pub continent_grid_size: Size16,
-    pub province_cell_size: Size16,
-    pub realm_cell_size: Size16,
-    pub continent_cell_size: Size16,
+    pub continent_cell_size: Size16
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
