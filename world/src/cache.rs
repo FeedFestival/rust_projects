@@ -9,7 +9,7 @@ pub enum ArgName {
     EMPTY, BUILD, LoadRegions, LOAD, DRAW
 }
 
-// #[derive(PartialEq, Eq, Hash)]
+#[derive(Debug)]
 pub struct ContinentBuilderSettings {
     pub img_size: Size16,
     pub region_grid_size: Size16,
@@ -31,7 +31,7 @@ pub static GLOBAL_CACHE: OnceCell<GlobalCache> = OnceCell::new();
 pub fn initialize_cache(
     planet_settings: &PlanetSettings,
     region_pref_width: u16,
-    province_pref_width: u16, // 256
+    province_pref_width: u16,
     realm_pref_width: u16,
 ) {
 
@@ -45,11 +45,20 @@ pub fn initialize_cache(
     // println!("\n");
 
     let mut cached_args: HashMap<ArgName, bool> = HashMap::new();
-    cached_args.insert(ArgName::EMPTY, args.len() == 1);
-    cached_args.insert(ArgName::BUILD, args.contains(&String::from("build")));
-    cached_args.insert(ArgName::LoadRegions, args.contains(&String::from("load-rg")));
-    cached_args.insert(ArgName::LOAD, args.contains(&String::from("load")));
-    cached_args.insert(ArgName::DRAW, args.contains(&String::from("draw")));
+    let is_default = args.len() == 1;
+    if is_default {
+        cached_args.insert(ArgName::EMPTY, is_default);
+        cached_args.insert(ArgName::BUILD, true);
+        cached_args.insert(ArgName::LoadRegions, false);
+        cached_args.insert(ArgName::LOAD, false);
+        cached_args.insert(ArgName::DRAW, true);
+    } else {
+        cached_args.insert(ArgName::EMPTY, is_default);
+        cached_args.insert(ArgName::BUILD, args.contains(&String::from("build")));
+        cached_args.insert(ArgName::LoadRegions, args.contains(&String::from("load-rg")));
+        cached_args.insert(ArgName::LOAD, args.contains(&String::from("load")));
+        cached_args.insert(ArgName::DRAW, args.contains(&String::from("draw")));
+    }
 
     // Builder Settings
     let continent_multiplier = 2;
@@ -58,10 +67,12 @@ pub fn initialize_cache(
         planet_settings.final_img_size.width + (planet_settings.continent_cell_size.width * continent_multiplier),
         planet_settings.final_img_size.height + (planet_settings.continent_cell_size.height * continent_multiplier),
     );
+    println!("img_size: {:?}", img_size);
     let continent_grid_size = Size16::new(
         planet_settings.final_continent_grid_size.width + continent_multiplier,
         planet_settings.final_continent_grid_size.height + continent_multiplier,
     );
+    println!("continent_grid_size: {:?}", continent_grid_size);
 
     let region_divider = img_size.width / region_pref_width;
     let province_divider = img_size.width / province_pref_width;
@@ -97,6 +108,7 @@ pub fn initialize_cache(
         province_cell_size,
         realm_cell_size,
     };
+    println!("builder_settings: {:#?}", builder_settings);
 
     let result = GLOBAL_CACHE.set(GlobalCache {
         args: Mutex::new(cached_args),

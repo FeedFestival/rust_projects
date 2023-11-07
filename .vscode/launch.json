@@ -9,7 +9,7 @@
             "request": "launch",
             "name": "Debug",
             "program": "world/target/debug/world",
-            "args": [],
+            "args": ["build load draw"],
             "cwd": "${workspaceFolder}"
         }
     ]

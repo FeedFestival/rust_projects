@@ -2,6 +2,8 @@ mod cache;
 mod continent_builder;
 mod image_builder;
 mod voronoi_builder;
+mod seamless_continents;
+pub mod pixels_utils;
 
 use crate::cache::{initialize_cache, ArgName};
 use cache::{cache_contains_args, dist_folder};
@@ -34,14 +36,22 @@ fn main() {
     let time_now = std::time::SystemTime::now();
 
     // (768, 384);
-    let planet_settings: PlanetSettings = create_planet_settings(1536, 768, 12);
+    let planet_settings: PlanetSettings = create_planet_settings(1536, 768, 14);
     initialize_cache(&planet_settings, 512, 128, 64);
+
+    if cache_contains_args(&ArgName::BUILD) && cache_contains_args(&ArgName::LOAD) == false {
+        gamescript::file_read_write::delete_file(dist_folder("regions.bin").as_str());
+        gamescript::file_read_write::delete_file(dist_folder("continents.bin").as_str());
+        gamescript::file_read_write::delete_file(dist_folder("planet.bin").as_str());
+        gamescript::file_read_write::delete_file(dist_folder("planet_settings.json").as_str());
+    }
 
     if cache_contains_args(&ArgName::EMPTY) || cache_contains_args(&ArgName::BUILD) {
         build_planet(&planet_settings, time_now);
     }
 
     if cache_contains_args(&ArgName::DRAW) {
+        println!("Drawing planet...");
         let planet: Planet = bin_read_write::deserialize_bin(dist_folder("planet.bin").as_str());
         image_builder::build_planet_image(
             &planet,
@@ -122,23 +132,57 @@ fn build_planet(planet_settings: &PlanetSettings, time_now: SystemTime) {
             &planet_settings,
             &dist_folder("debug__continets.png"),
             false,
+            false,
+            false
         );
     }
 
-    continent_builder::assign_continent_gradient_to_pixels(&mut planet, &planet_settings);
+    seamless_continents::assign_continent_gradient_to_pixels(&mut planet, &planet_settings);
     println!("Finished planet -> {}", get_elapsed_time(&time_now));
 
-    continent_builder::move_continents_pixels_towards_edge(&mut planet, &planet_settings);
+    seamless_continents::move_continents_pixels_towards_edge(&mut planet, &planet_settings);
     println!("Move continents pixels -> {}", get_elapsed_time(&time_now));
 
     if cache_contains_args(&ArgName::DRAW) {
         image_builder::debug_planet_image(
             &planet,
             &planet_settings,
-            &dist_folder("debug_moved__continets.png"),
+            &dist_folder("d_moved_continets.png"),
             true,
+            false,
+            false
         );
     }
+
+    seamless_continents::merge_centered_continents(&mut planet, &planet_settings);
+    println!("Merge centered continents pixels -> {}", get_elapsed_time(&time_now));
+
+    // seamless_continents::assign_continent_gradient_to_pixels(&mut planet, &planet_settings);
+    // println!("Finished planet -> {}", get_elapsed_time(&time_now));
+
+    if cache_contains_args(&ArgName::DRAW) {
+        image_builder::debug_planet_image(
+            &planet,
+            &planet_settings,
+            &dist_folder("d_moved_continets_realms_only_center.png"),
+            true,
+            false,
+            true
+        );
+    }
+
+    if cache_contains_args(&ArgName::DRAW) {
+        image_builder::debug_planet_image(
+            &planet,
+            &planet_settings,
+            &dist_folder("d_moved_continets_realms.png"),
+            true,
+            false,
+            false
+        );
+    }
+
+    // return;
 
     gamescript::bin_read_write::write(&planet, &dist_folder("planet.bin"));
     gamescript::json_read_write::write(&planet_settings, &dist_folder("planet_settings.json"));

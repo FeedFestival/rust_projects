@@ -1,6 +1,6 @@
 use std::{
-    fs::{File, metadata},
-    io::{Read, Write}, env,
+    fs::{File, metadata, self},
+    io::{Read, Write, ErrorKind}, env, error::Error,
 };
 
 pub fn dir_name(lib_name: &str) -> Option<String> {
@@ -35,6 +35,21 @@ pub fn read_bytes(path: &str) -> Vec<u8> {
     let mut data: Vec<u8> = vec![];
     file.read_to_end(&mut data);
     return data;
+}
+
+pub fn delete_file(path: &str) {
+    // use std::io::ErrorKind;
+
+  let message = match std::fs::remove_file(path) {
+    Ok(()) => "ok",
+    Err(e) if e.kind() == ErrorKind::NotFound => "it's not a file",
+    // Err(e) if e.kind() == ErrorKind::IsADirectory => "is a directory",
+    Err(e) => "other",
+  };
+
+  println!("{message}");
+    // fs::remove_file(path)
+    //     .expect(format!("Could not remove file: {}", path).as_str());
 }
 
 fn open_or_create(path: &str)-> File {
